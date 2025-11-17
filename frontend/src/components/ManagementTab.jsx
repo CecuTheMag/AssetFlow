@@ -7,11 +7,12 @@ import UsersTab from './UsersTab';
 import EquipmentFleetSection from './EquipmentFleetSection';
 import LessonPlansSection from './LessonPlansSection';
 import CurriculumSection from './CurriculumSection';
+import LessonPlanManagement from './LessonPlanManagement';
 import { useTranslation } from '../translations';
 
-const ManagementTab = () => {
+const ManagementTab = ({ userRole }) => {
   const { t } = useTranslation();
-  const [activeSection, setActiveSection] = useState('equipment');
+  const [activeSection, setActiveSection] = useState(userRole === 'teacher' ? 'lessons' : 'equipment');
   const [equipmentFleets, setEquipmentFleets] = useState([]);
   const [lessonPlans, setLessonPlans] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -188,12 +189,16 @@ const ManagementTab = () => {
           overflowX: isMobile ? 'auto' : 'visible',
           paddingBottom: isMobile ? '4px' : '0'
         }}>
-          {[
-            { id: 'equipment', label: isMobile ? t('equipment') : t('equipmentFleet') },
-            { id: 'lessons', label: isMobile ? t('lessons') : t('lessonPlans') },
-            { id: 'curriculum', label: t('curriculum') },
-            { id: 'users', label: t('users') }
-          ].map((section) => (
+          {(
+            userRole === 'teacher' 
+              ? [{ id: 'lessons', label: isMobile ? t('lessons') : t('lessonPlans') }]
+              : [
+                  { id: 'equipment', label: isMobile ? t('equipment') : t('equipmentFleet') },
+                  { id: 'lessons', label: isMobile ? t('lessons') : t('lessonPlans') },
+                  { id: 'curriculum', label: t('curriculum') },
+                  { id: 'users', label: t('users') }
+                ]
+          ).map((section) => (
             <button
               key={section.id}
               onClick={() => setActiveSection(section.id)}
@@ -217,48 +222,56 @@ const ManagementTab = () => {
       </div>
 
       {/* Content */}
-      {activeSection === 'equipment' && (
-        <EquipmentFleetSection 
-          equipmentFleets={equipmentFleets}
-          isMobile={isMobile}
-          onDelete={(id, type) => {
-            setSelectedItems([id]);
-            setDeleteType(type);
-            setShowDeleteDialog(true);
-          }}
-        />
+      {userRole === 'teacher' ? (
+        <div style={{ padding: isMobile ? '16px' : '32px' }}>
+          <LessonPlanManagement />
+        </div>
+      ) : (
+        <>
+          {activeSection === 'equipment' && (
+            <EquipmentFleetSection 
+              equipmentFleets={equipmentFleets}
+              isMobile={isMobile}
+              onDelete={(id, type) => {
+                setSelectedItems([id]);
+                setDeleteType(type);
+                setShowDeleteDialog(true);
+              }}
+            />
+          )}
+          {activeSection === 'lessons' && (
+            <LessonPlansSection 
+              lessonPlans={lessonPlans}
+              isMobile={isMobile}
+              onDelete={(id, type) => {
+                setSelectedItems([id]);
+                setDeleteType(type);
+                setShowDeleteDialog(true);
+              }}
+            />
+          )}
+          {activeSection === 'curriculum' && (
+            <CurriculumSection 
+              subjects={subjects}
+              isMobile={isMobile}
+              onDelete={(id, type) => {
+                setSelectedItems([id]);
+                setDeleteType(type);
+                setShowDeleteDialog(true);
+              }}
+              onEdit={(subject) => {
+                setEditingSubject(subject);
+                setShowSubjectModal(true);
+              }}
+              onAdd={() => {
+                setEditingSubject(null);
+                setShowSubjectModal(true);
+              }}
+            />
+          )}
+          {activeSection === 'users' && <UsersTab />}
+        </>
       )}
-      {activeSection === 'lessons' && (
-        <LessonPlansSection 
-          lessonPlans={lessonPlans}
-          isMobile={isMobile}
-          onDelete={(id, type) => {
-            setSelectedItems([id]);
-            setDeleteType(type);
-            setShowDeleteDialog(true);
-          }}
-        />
-      )}
-      {activeSection === 'curriculum' && (
-        <CurriculumSection 
-          subjects={subjects}
-          isMobile={isMobile}
-          onDelete={(id, type) => {
-            setSelectedItems([id]);
-            setDeleteType(type);
-            setShowDeleteDialog(true);
-          }}
-          onEdit={(subject) => {
-            setEditingSubject(subject);
-            setShowSubjectModal(true);
-          }}
-          onAdd={() => {
-            setEditingSubject(null);
-            setShowSubjectModal(true);
-          }}
-        />
-      )}
-      {activeSection === 'users' && <UsersTab />}
 
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (

@@ -39,13 +39,39 @@ router.get('/lesson-plans', authenticateToken, async (req, res) => {
       SELECT lp.*, s.name as subject_name, s.code as subject_code
       FROM lesson_plans lp
       LEFT JOIN subjects s ON lp.subject_id = s.id
+      WHERE lp.teacher_id = $1
       ORDER BY lp.lesson_date DESC
-    `);
+    `, [req.user.id]);
     
     res.json(result.rows);
   } catch (error) {
     console.error('Lesson plans error:', error);
     res.status(500).json({ error: 'Failed to fetch lesson plans' });
+  }
+});
+
+// Update lesson plan
+router.put('/lesson-plans/:id', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment } = req.body;
+    
+    const result = await pool.query(`
+      UPDATE lesson_plans 
+      SET subject_id = $1, title = $2, description = $3, learning_objectives = $4, 
+          lesson_date = $5, duration_minutes = $6, grade_level = $7, required_equipment = $8
+      WHERE id = $9 AND teacher_id = $10
+      RETURNING *
+    `, [subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment || [], id, req.user.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Lesson plan not found or not authorized' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update lesson plan error:', error);
+    res.status(500).json({ error: 'Failed to update lesson plan' });
   }
 });
 
@@ -354,6 +380,29 @@ router.get('/curriculum/:subjectCode/recommendations', authenticateToken, async 
   }
 });
 
+// Get single lesson plan
+router.get('/lesson-plans/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(`
+      SELECT lp.*, s.name as subject_name, s.code as subject_code
+      FROM lesson_plans lp
+      LEFT JOIN subjects s ON lp.subject_id = s.id
+      WHERE lp.id = $1 AND lp.teacher_id = $2
+    `, [id, req.user.id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Lesson plan not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get lesson plan error:', error);
+    res.status(500).json({ error: 'Failed to fetch lesson plan' });
+  }
+});
+
 // Delete lesson plan
 router.delete('/lesson-plans/:id', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
@@ -372,6 +421,38 @@ router.delete('/lesson-plans/:id', authenticateToken, requireTeacherOrAdmin, asy
   } catch (error) {
     console.error('Delete lesson plan error:', error);
     res.status(500).json({ error: 'Failed to delete lesson plan' });
+  }
+});
+
+// Get teacher's lesson plan statistics
+router.get('/teacher/stats', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
+  try {
+    const stats = await pool.query(`
+      SELECT 
+        COUNT(*) as total_plans,
+        COUNT(CASE WHEN lesson_date >= CURRENT_DATE THEN 1 END) as upcoming_plans,
+        COUNT(CASE WHEN lesson_date < CURRENT_DATE THEN 1 END) as completed_plans,
+        COUNT(DISTINCT subject_id) as subjects_taught
+      FROM lesson_plans 
+      WHERE teacher_id = $1
+    `, [req.user.id]);
+    
+    const recentPlans = await pool.query(`
+      SELECT lp.*, s.name as subject_name
+      FROM lesson_plans lp
+      LEFT JOIN subjects s ON lp.subject_id = s.id
+      WHERE lp.teacher_id = $1
+      ORDER BY lp.lesson_date DESC
+      LIMIT 5
+    `, [req.user.id]);
+    
+    res.json({
+      ...stats.rows[0],
+      recent_plans: recentPlans.rows
+    });
+  } catch (error) {
+    console.error('Teacher stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher statistics' });
   }
 });
 
@@ -405,6 +486,41 @@ router.delete('/subjects/:id', authenticateToken, requireTeacherOrAdmin, async (
   } catch (error) {
     console.error('Delete subject error:', error);
     res.status(500).json({ error: 'Failed to delete subject' });
+  }
+});
+
+// Bulk create lesson plans
+router.post('/lesson-plans/bulk', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
+  try {
+    const { plans } = req.body;
+    
+    if (!Array.isArray(plans) || plans.length === 0) {
+      return res.status(400).json({ error: 'Plans array is required' });
+    }
+    
+    const results = [];
+    
+    for (const plan of plans) {
+      const { subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment } = plan;
+      
+      const result = await pool.query(`
+        INSERT INTO lesson_plans (teacher_id, subject_id, title, description, learning_objectives, 
+                                 required_equipment, lesson_date, duration_minutes, grade_level)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
+      `, [req.user.id, subject_id, title, description, learning_objectives, 
+          required_equipment || [], lesson_date, duration_minutes, grade_level]);
+      
+      results.push(result.rows[0]);
+    }
+    
+    res.status(201).json({ 
+      message: `${results.length} lesson plans created successfully`,
+      plans: results 
+    });
+  } catch (error) {
+    console.error('Bulk create lesson plans error:', error);
+    res.status(500).json({ error: 'Failed to create lesson plans' });
   }
 });
 

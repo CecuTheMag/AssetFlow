@@ -745,7 +745,7 @@ const Dashboard = () => {
           </>
         ) : activeTab === 'management' ? (
           <>
-            <ManagementTab />
+            <ManagementTab userRole={user?.role} />
             <Footer isMobile={isMobile} />
           </>
         ) : activeTab === 'settings' ? (
