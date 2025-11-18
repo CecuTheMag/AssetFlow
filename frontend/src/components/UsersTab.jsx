@@ -45,7 +45,11 @@ const UsersTab = () => {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      await users.updateRole(userId, newRole);
+      const currentUser = usersList.find(u => u.id === userId);
+      await users.updateRole(userId, {
+        role: newRole,
+        subject_id: newRole === 'teacher' ? currentUser?.subject_id : null
+      });
       await fetchUsers();
       toast.success('User role updated successfully');
     } catch (error) {

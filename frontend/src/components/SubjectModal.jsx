@@ -52,7 +52,10 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       const users = Array.isArray(response.data) ? response.data : [];
-      const teacherUsers = users.filter(user => user.role === 'teacher');
+      const teacherUsers = users.filter(user => 
+        user.role === 'teacher' && 
+        (!user.subject_id || (subject && user.subject_id === subject.id))
+      );
       setTeachers(teacherUsers);
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
