@@ -1,12 +1,12 @@
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '../translations';
-import { AuthContext } from '../AuthContext';
+import { useAuth } from '../AuthContext';
 import AutoEquipmentRequestModal from './AutoEquipmentRequestModal';
 
 const LessonPlansSection = ({ lessonPlans, isMobile, onDelete, onRefresh }) => {
   const { t } = useTranslation();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState(null);
 

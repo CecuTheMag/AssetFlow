@@ -1,11 +1,11 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { equipment, education } from '../api';
 import { toast } from './Toast';
-import { AuthContext } from '../AuthContext';
+import { useAuth } from '../AuthContext';
 
 const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [availableFleetItems, setAvailableFleetItems] = useState([]);
   const [selectedFleet, setSelectedFleet] = useState('');
   const [loading, setLoading] = useState(false);

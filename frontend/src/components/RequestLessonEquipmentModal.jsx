@@ -1,11 +1,11 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { equipment, education } from '../api';
 import { toast } from './Toast';
-import { AuthContext } from '../AuthContext';
+import { useAuth } from '../AuthContext';
 
 const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [availableEquipment, setAvailableEquipment] = useState([]);
   const [selectedEquipment, setSelectedEquipment] = useState([]);
   const [formData, setFormData] = useState({
