@@ -4,32 +4,26 @@ import { equipment, education } from '../api';
 import { toast } from './Toast';
 import { AuthContext } from '../AuthContext';
 
-const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
+const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
   const { user } = useContext(AuthContext);
-  const [availableEquipment, setAvailableEquipment] = useState([]);
-  const [selectedEquipment, setSelectedEquipment] = useState([]);
-  const [formData, setFormData] = useState({
-    start_date: lessonPlan.start_date || '',
-    end_date: lessonPlan.end_date || '',
-    notes: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [requestedItem, setRequestedItem] = useState(null);
   const [availableFleetItems, setAvailableFleetItems] = useState([]);
+  const [selectedFleet, setSelectedFleet] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [nextAvailableItem, setNextAvailableItem] = useState(null);
 
   useEffect(() => {
     fetchAvailableFleetEquipment();
-    setFormData(prev => ({
-      ...prev,
-      start_date: lessonPlan.start_date || '',
-      end_date: lessonPlan.end_date || '',
-      notes: `Equipment request for lesson: ${lessonPlan.title}`
-    }));
   }, [lessonPlan]);
+
+  useEffect(() => {
+    if (selectedFleet) {
+      findNextAvailableItem();
+    }
+  }, [selectedFleet, availableFleetItems]);
 
   const fetchAvailableFleetEquipment = async () => {
     try {
-      // Get equipment fleets from lesson plan's subject
+      // Get subject details to find equipment fleets
       const subjectResponse = await education.getSubjects();
       const subject = subjectResponse.data.find(s => s.id === lessonPlan.subject_id);
       
@@ -50,12 +44,16 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
           item.serial_number.startsWith(fleetSerial) &&
           item.status === 'available'
         );
+        
         if (items.length > 0) {
+          // Sort by serial number to ensure consistent ordering
+          const sortedItems = items.sort((a, b) => a.serial_number.localeCompare(b.serial_number));
+          
           fleetItems.push({
             fleetSerial,
             name: items[0].name,
             type: items[0].type,
-            availableItems: items.sort((a, b) => a.serial_number.localeCompare(b.serial_number))
+            availableItems: sortedItems
           });
         }
       });
@@ -66,49 +64,64 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
     }
   };
 
+  const findNextAvailableItem = async () => {
+    if (!selectedFleet) {
+      setNextAvailableItem(null);
+      return;
+    }
+
+    try {
+      const fleet = availableFleetItems.find(f => f.fleetSerial === selectedFleet);
+      if (!fleet || fleet.availableItems.length === 0) {
+        setNextAvailableItem(null);
+        return;
+      }
+
+      // Check for existing requests in the date range to find truly available items
+      const startDate = lessonPlan.start_date;
+      const endDate = lessonPlan.end_date;
+      
+      // Find the first item that doesn't have conflicting requests
+      for (const item of fleet.availableItems) {
+        // This would ideally check against existing requests, but for now we'll use the first available
+        setNextAvailableItem(item);
+        break;
+      }
+    } catch (error) {
+      console.error('Failed to find next available item:', error);
+      setNextAvailableItem(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!requestedItem) {
-      toast.error('Please select an equipment type to request');
+    
+    if (!selectedFleet || !nextAvailableItem) {
+      toast.error('Please select an equipment type');
       return;
     }
 
     setLoading(true);
     try {
-      // Find next available item in the fleet
-      const fleet = availableFleetItems.find(f => f.fleetSerial === requestedItem);
-      if (!fleet || fleet.availableItems.length === 0) {
-        toast.error('No more items available in this fleet');
-        return;
-      }
-
-      const nextItem = fleet.availableItems[0]; // Get first available item
-      
       await education.requestLessonEquipment(lessonPlan.id, {
-        equipment_ids: [nextItem.id],
-        ...formData
+        equipment_ids: [nextAvailableItem.id],
+        start_date: lessonPlan.start_date,
+        end_date: lessonPlan.end_date,
+        notes: `Automatic equipment request for lesson: ${lessonPlan.title}`
       });
       
-      toast.success(`Equipment ${nextItem.serial_number} requested successfully!`);
+      toast.success(`Equipment ${nextAvailableItem.serial_number} requested successfully!`);
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error('Failed to request equipment');
+      const errorMsg = error.response?.data?.message || 'Failed to request equipment';
+      if (errorMsg.includes('No more items available')) {
+        toast.error('No more items available in this fleet. All items are currently in use.');
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const selectFleet = (fleetSerial) => {
-    setRequestedItem(fleetSerial);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'available': return '#10b981';
-      case 'checked_out': return '#f59e0b';
-      case 'under_repair': return '#ef4444';
-      default: return '#6b7280';
     }
   };
 
@@ -133,7 +146,7 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
           backgroundColor: 'white',
           borderRadius: '16px',
           padding: '32px',
-          maxWidth: '700px',
+          maxWidth: '600px',
           width: '100%',
           maxHeight: '90vh',
           overflowY: 'auto',
@@ -172,10 +185,8 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
               </label>
               <input
                 type="date"
-                value={formData.start_date}
-                readOnly={user?.role === 'student'}
-                onChange={user?.role !== 'student' ? (e) => setFormData(prev => ({ ...prev, start_date: e.target.value })) : undefined}
-                required
+                value={lessonPlan.start_date || ''}
+                readOnly
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -183,8 +194,9 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
                   borderRadius: '8px',
                   fontSize: '16px',
                   boxSizing: 'border-box',
-                  backgroundColor: user?.role === 'student' ? '#f9fafb' : '#ffffff',
-                  cursor: user?.role === 'student' ? 'not-allowed' : 'text'
+                  backgroundColor: '#f9fafb',
+                  cursor: 'not-allowed',
+                  color: '#000000'
                 }}
               />
             </div>
@@ -194,10 +206,8 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
               </label>
               <input
                 type="date"
-                value={formData.end_date}
-                readOnly={user?.role === 'student'}
-                onChange={user?.role !== 'student' ? (e) => setFormData(prev => ({ ...prev, end_date: e.target.value })) : undefined}
-                required
+                value={lessonPlan.end_date || ''}
+                readOnly
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -205,43 +215,25 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
                   borderRadius: '8px',
                   fontSize: '16px',
                   boxSizing: 'border-box',
-                  backgroundColor: user?.role === 'student' ? '#f9fafb' : '#ffffff',
-                  cursor: user?.role === 'student' ? 'not-allowed' : 'text'
+                  backgroundColor: '#f9fafb',
+                  cursor: 'not-allowed',
+                  color: '#000000'
                 }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
-              Notes
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={2}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '16px',
-                resize: 'vertical',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div>
             <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: '#374151' }}>
-              Select Equipment Type (One Item Per Request)
+              Select Equipment Type (One Item Will Be Automatically Assigned)
             </label>
             <div style={{ 
               maxHeight: '300px', 
               overflowY: 'auto',
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
-              padding: '8px'
+              padding: '8px',
+              backgroundColor: '#ffffff'
             }}>
               {availableFleetItems.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
@@ -251,15 +243,15 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
                 availableFleetItems.map((fleet) => (
                   <div
                     key={fleet.fleetSerial}
-                    onClick={() => selectFleet(fleet.fleetSerial)}
+                    onClick={() => setSelectedFleet(fleet.fleetSerial)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '12px',
                       margin: '4px 0',
-                      backgroundColor: requestedItem === fleet.fleetSerial ? '#dbeafe' : '#f9fafb',
-                      border: requestedItem === fleet.fleetSerial ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                      backgroundColor: selectedFleet === fleet.fleetSerial ? '#dbeafe' : '#f9fafb',
+                      border: selectedFleet === fleet.fleetSerial ? '2px solid #3b82f6' : '1px solid #e5e7eb',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -267,7 +259,7 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
                   >
                     <input
                       type="radio"
-                      checked={requestedItem === fleet.fleetSerial}
+                      checked={selectedFleet === fleet.fleetSerial}
                       onChange={() => {}}
                       style={{ marginRight: '12px' }}
                     />
@@ -293,17 +285,17 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
                 ))
               )}
             </div>
-            {requestedItem && (
+            
+            {nextAvailableItem && (
               <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af', marginBottom: '4px' }}>
                   Next Available Item:
                 </div>
                 <div style={{ fontSize: '13px', color: '#374151' }}>
-                  {(() => {
-                    const fleet = availableFleetItems.find(f => f.fleetSerial === requestedItem);
-                    const nextItem = fleet?.availableItems[0];
-                    return nextItem ? `${nextItem.serial_number} - ${nextItem.name}` : 'No items available';
-                  })()}
+                  {nextAvailableItem.serial_number} - {nextAvailableItem.name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  Location: {nextAvailableItem.location || 'Not specified'}
                 </div>
               </div>
             )}
@@ -328,16 +320,16 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
             </button>
             <button
               type="submit"
-              disabled={loading || !requestedItem}
+              disabled={loading || !selectedFleet || !nextAvailableItem}
               style={{
                 padding: '12px 24px',
-                backgroundColor: loading || !requestedItem ? '#9ca3af' : '#3b82f6',
+                backgroundColor: loading || !selectedFleet || !nextAvailableItem ? '#9ca3af' : '#3b82f6',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '16px',
                 fontWeight: '600',
-                cursor: loading || !requestedItem ? 'not-allowed' : 'pointer'
+                cursor: loading || !selectedFleet || !nextAvailableItem ? 'not-allowed' : 'pointer'
               }}
             >
               {loading ? 'Requesting...' : 'Request Next Available Item'}
@@ -349,4 +341,4 @@ const RequestLessonEquipmentModal = ({ lessonPlan, onClose, onSuccess }) => {
   );
 };
 
-export default RequestLessonEquipmentModal;
+export default AutoEquipmentRequestModal;

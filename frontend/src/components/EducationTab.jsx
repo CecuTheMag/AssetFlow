@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { education } from '../api';
 import { useAuth } from '../AuthContext';
 import CreateLessonPlanModal from './CreateLessonPlanModal';
-import RequestLessonEquipmentModal from './RequestLessonEquipmentModal';
+import AutoEquipmentRequestModal from './AutoEquipmentRequestModal';
 import { useTranslation } from '../translations';
 
 const EducationTab = () => {
@@ -723,7 +723,7 @@ const EducationTab = () => {
       )}
       
       {showRequestModal && selectedLesson && (
-        <RequestLessonEquipmentModal
+        <AutoEquipmentRequestModal
           lessonPlan={selectedLesson}
           onClose={() => {
             setShowRequestModal(false);

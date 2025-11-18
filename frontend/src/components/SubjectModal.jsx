@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { education, equipment } from '../api';
 import { toast } from './Toast';
 import { useTranslation } from '../translations';
+import axios from 'axios';
 
 const SubjectModal = ({ subject, onClose, onSuccess }) => {
   const { t } = useTranslation();
@@ -16,6 +17,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
     equipment_fleets: []
   });
   const [equipmentFleets, setEquipmentFleets] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const isEdit = !!subject;
 
@@ -32,6 +34,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
       });
     }
     fetchEquipmentFleets();
+    fetchTeachers();
   }, [subject]);
 
   const fetchEquipmentFleets = async () => {
@@ -40,6 +43,18 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
       setEquipmentFleets(response.data || []);
     } catch (error) {
       console.error('Failed to fetch equipment fleets:', error);
+    }
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      const response = await axios.get('/api/users', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const teacherUsers = response.data.filter(user => user.role === 'teacher');
+      setTeachers(teacherUsers);
+    } catch (error) {
+      console.error('Failed to fetch teachers:', error);
     }
   };
 
@@ -196,27 +211,34 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
               Teacher Name
             </label>
-            <input
-              type="text"
+            <select
               value={formData.teacher_name}
               onChange={(e) => setFormData(prev => ({ ...prev, teacher_name: e.target.value }))}
-              placeholder="Primary teacher for this subject"
               style={{
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '16px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#000000',
+                backgroundColor: '#ffffff'
               }}
-            />
+            >
+              <option value="" style={{ color: '#000000' }}>Select a teacher</option>
+              {teachers.map(teacher => (
+                <option key={teacher.id} value={teacher.username} style={{ color: '#000000' }}>
+                  {teacher.username} ({teacher.email})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
               Equipment Fleets
             </label>
-            <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px' }}>
+            <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px', backgroundColor: '#ffffff' }}>
               {equipmentFleets.map((fleet) => (
                 <label key={fleet.base_serial} style={{ display: 'flex', alignItems: 'center', padding: '4px 0', cursor: 'pointer' }}>
                   <input
@@ -231,7 +253,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
                     }}
                     style={{ marginRight: '8px' }}
                   />
-                  <span style={{ fontSize: '14px' }}>{fleet.name} ({fleet.items.length} items)</span>
+                  <span style={{ fontSize: '14px', color: '#000000' }}>{fleet.name} ({fleet.items?.length || 0} items)</span>
                 </label>
               ))}
             </div>

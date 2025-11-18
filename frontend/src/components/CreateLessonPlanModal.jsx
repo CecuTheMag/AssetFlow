@@ -75,17 +75,7 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
 
       const response = await education.createLessonPlan(submitData);
       
-      // Create equipment requests for selected items
-      if (formData.required_equipment.length > 0) {
-        await education.requestLessonEquipment(response.data.id, {
-          equipment_ids: formData.required_equipment.map(eq => eq.id),
-          start_date: formData.start_date,
-          end_date: formData.end_date,
-          notes: `Equipment for lesson: ${formData.title}`
-        });
-      }
-
-      toast.success('Lesson plan created and equipment requested!');
+      toast.success('Lesson plan created successfully!');
       onSuccess();
       onClose();
     } catch (error) {
@@ -222,12 +212,14 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '16px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#000000',
+                backgroundColor: '#ffffff'
               }}
             >
-              <option value="">Select a subject</option>
+              <option value="" style={{ color: '#000000' }}>Select a subject</option>
               {subjects.map(subject => (
-                <option key={subject.id} value={subject.id}>
+                <option key={subject.id} value={subject.id} style={{ color: '#000000' }}>
                   {subject.name}
                 </option>
               ))}
@@ -561,7 +553,7 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
                 cursor: loading ? 'not-allowed' : 'pointer'
               }}
             >
-              {loading ? 'Creating...' : `Create & Request ${formData.required_equipment.length} Items`}
+              {loading ? 'Creating...' : 'Create Lesson Plan'}
             </button>
           </div>
         </form>

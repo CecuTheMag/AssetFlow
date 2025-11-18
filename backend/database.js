@@ -105,10 +105,19 @@ export const initDB = async () => {
         required_equipment TEXT[],
         suggested_equipment TEXT[],
         lesson_date DATE,
+        start_date DATE,
+        end_date DATE,
         duration_minutes INTEGER,
         grade_level VARCHAR(20),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add new columns if they don't exist
+    await pool.query(`
+      ALTER TABLE lesson_plans 
+      ADD COLUMN IF NOT EXISTS start_date DATE,
+      ADD COLUMN IF NOT EXISTS end_date DATE
     `);
 
     // ===== EQUIPMENT TABLE =====
@@ -301,6 +310,8 @@ export const initDB = async () => {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_equipment_type ON equipment(type)');             // Equipment category filtering
     await pool.query('CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)');                    // Role-based access control
     await pool.query('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');                  // Login authentication
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_lesson_plans_teacher ON lesson_plans(teacher_id)'); // Teacher's lesson plans
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_lesson_plans_dates ON lesson_plans(start_date, end_date)'); // Date range queries
 
     
     console.log('Database tables and indexes initialized successfully');

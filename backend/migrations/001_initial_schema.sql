@@ -61,6 +61,36 @@ CREATE TABLE IF NOT EXISTS condition_logs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Lesson plans table
+CREATE TABLE IF NOT EXISTS lesson_plans (
+  id SERIAL PRIMARY KEY,
+  teacher_id INTEGER REFERENCES users(id),
+  subject_id INTEGER,
+  title VARCHAR(200) NOT NULL,
+  description TEXT,
+  learning_objectives TEXT[],
+  required_equipment TEXT[],
+  lesson_date DATE,
+  start_date DATE,
+  end_date DATE,
+  duration_minutes INTEGER DEFAULT 45,
+  grade_level VARCHAR(20),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Subjects table
+CREATE TABLE IF NOT EXISTS subjects (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(20) UNIQUE NOT NULL,
+  description TEXT,
+  grade_level VARCHAR(50),
+  room VARCHAR(50),
+  teacher_name VARCHAR(100),
+  equipment_fleets TEXT[],
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_requests_user_id ON requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_requests_equipment_id ON requests(equipment_id);
@@ -70,3 +100,6 @@ CREATE INDEX IF NOT EXISTS idx_equipment_status ON equipment(status);
 CREATE INDEX IF NOT EXISTS idx_equipment_type ON equipment(type);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_lesson_plans_teacher ON lesson_plans(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_plans_dates ON lesson_plans(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_subjects_code ON subjects(code);

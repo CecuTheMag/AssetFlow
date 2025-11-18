@@ -54,15 +54,16 @@ router.get('/lesson-plans', authenticateToken, async (req, res) => {
 router.put('/lesson-plans/:id', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment } = req.body;
+    const { subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment, start_date, end_date } = req.body;
     
     const result = await pool.query(`
       UPDATE lesson_plans 
       SET subject_id = $1, title = $2, description = $3, learning_objectives = $4, 
-          lesson_date = $5, duration_minutes = $6, grade_level = $7, required_equipment = $8
-      WHERE id = $9 AND teacher_id = $10
+          lesson_date = $5, duration_minutes = $6, grade_level = $7, required_equipment = $8,
+          start_date = $9, end_date = $10
+      WHERE id = $11 AND teacher_id = $12
       RETURNING *
-    `, [subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment || [], id, req.user.id]);
+    `, [subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment || [], start_date, end_date, id, req.user.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Lesson plan not found or not authorized' });
@@ -123,15 +124,15 @@ router.put('/subjects/:id', authenticateToken, requireTeacherOrAdmin, async (req
 // Create lesson plan
 router.post('/lesson-plans', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
-    const { subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment } = req.body;
+    const { subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment, start_date, end_date } = req.body;
     
     const result = await pool.query(`
       INSERT INTO lesson_plans (teacher_id, subject_id, title, description, learning_objectives, 
-                               required_equipment, lesson_date, duration_minutes, grade_level)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                               required_equipment, lesson_date, duration_minutes, grade_level, start_date, end_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `, [req.user.id, subject_id, title, description, learning_objectives, 
-        required_equipment || [], lesson_date, duration_minutes, grade_level]);
+        required_equipment || [], lesson_date, duration_minutes, grade_level, start_date, end_date]);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -205,16 +206,16 @@ router.get('/curriculum', authenticateToken, async (req, res) => {
   }
 });
 
-// Request equipment for lesson plan
+// Request equipment for lesson plan with automatic fleet cycling
 router.post('/lesson-plans/:id/request-equipment', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { equipment_ids, start_date, end_date, notes } = req.body;
     
-    // Verify lesson plan exists and belongs to user
+    // Verify lesson plan exists
     const lesson = await pool.query(
-      'SELECT * FROM lesson_plans WHERE id = $1 AND teacher_id = $2',
-      [id, req.user.id]
+      'SELECT * FROM lesson_plans WHERE id = $1',
+      [id]
     );
     
     if (lesson.rows.length === 0) {
@@ -224,54 +225,89 @@ router.post('/lesson-plans/:id/request-equipment', authenticateToken, async (req
     const requests = [];
     const skipped = [];
     
-    // Create requests for each equipment item
+    // Create requests for each equipment item with automatic cycling
     for (const equipment_id of equipment_ids) {
-      // Check if equipment is available and not already requested
+      // First, try to get the specific equipment if available
+      let equipmentToRequest = null;
+      
       const equipmentCheck = await pool.query(`
         SELECT e.*, 
                CASE WHEN r.id IS NOT NULL THEN true ELSE false END as has_pending_request
         FROM equipment e
         LEFT JOIN requests r ON e.id = r.equipment_id 
-          AND r.status = 'pending' 
+          AND r.status IN ('pending', 'approved') 
           AND r.start_date <= $2 
           AND r.end_date >= $1
         WHERE e.id = $3
       `, [start_date, end_date, equipment_id]);
       
-      if (equipmentCheck.rows.length === 0) {
-        skipped.push({ equipment_id, reason: 'Equipment not found' });
-        continue;
+      if (equipmentCheck.rows.length > 0) {
+        const equipment = equipmentCheck.rows[0];
+        
+        // Check if this specific item is available
+        if (equipment.status === 'available' && !equipment.has_pending_request) {
+          equipmentToRequest = equipment;
+        } else {
+          // If specific item not available, find next available in same fleet
+          const baseSerial = equipment.serial_number ? 
+            equipment.serial_number.replace(/\d{3}$/, '') : null;
+          
+          if (baseSerial) {
+            const fleetItems = await pool.query(`
+              SELECT e.*, 
+                     CASE WHEN r.id IS NOT NULL THEN true ELSE false END as has_pending_request
+              FROM equipment e
+              LEFT JOIN requests r ON e.id = r.equipment_id 
+                AND r.status IN ('pending', 'approved') 
+                AND r.start_date <= $2 
+                AND r.end_date >= $1
+              WHERE e.serial_number LIKE $3 
+                AND e.status = 'available'
+                AND r.id IS NULL
+              ORDER BY e.serial_number
+              LIMIT 1
+            `, [start_date, end_date, baseSerial + '%']);
+            
+            if (fleetItems.rows.length > 0) {
+              equipmentToRequest = fleetItems.rows[0];
+            }
+          }
+        }
       }
       
-      const equipment = equipmentCheck.rows[0];
-      
-      // Skip if equipment is not available or has pending request
-      if (equipment.status !== 'available') {
+      if (!equipmentToRequest) {
         skipped.push({ 
           equipment_id, 
-          name: equipment.name,
-          reason: `Equipment is ${equipment.status}` 
+          reason: 'No available items in fleet for this period' 
         });
         continue;
       }
       
-      if (equipment.has_pending_request) {
-        skipped.push({ 
-          equipment_id, 
-          name: equipment.name,
-          reason: 'Already has pending request for this period' 
-        });
-        continue;
-      }
-      
-      // Create the request
+      // Create the request with the available equipment
       const result = await pool.query(`
         INSERT INTO requests (user_id, equipment_id, start_date, end_date, notes)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING *
-      `, [req.user.id, equipment_id, start_date, end_date, notes || `Equipment for lesson: ${lesson.rows[0].title}`]);
+      `, [req.user.id, equipmentToRequest.id, start_date, end_date, notes || `Equipment for lesson: ${lesson.rows[0].title}`]);
       
-      requests.push(result.rows[0]);
+      // Get equipment details for response
+      const equipmentDetails = await pool.query(
+        'SELECT * FROM equipment WHERE id = $1',
+        [equipmentToRequest.id]
+      );
+      
+      requests.push({
+        ...result.rows[0],
+        equipment: equipmentDetails.rows[0]
+      });
+    }
+    
+    if (requests.length === 0 && skipped.length > 0) {
+      return res.status(400).json({ 
+        error: 'No more items available', 
+        message: 'All items in the requested fleets are currently in use or under repair.',
+        skipped 
+      });
     }
     
     res.status(201).json({ 
@@ -283,6 +319,42 @@ router.post('/lesson-plans/:id/request-equipment', authenticateToken, async (req
   } catch (error) {
     console.error('Equipment request error:', error);
     res.status(500).json({ error: 'Failed to request equipment' });
+  }
+});
+
+// Get next available equipment in fleet
+router.get('/equipment/fleet/:baseSerial/next-available', authenticateToken, async (req, res) => {
+  try {
+    const { baseSerial } = req.params;
+    const { start_date, end_date } = req.query;
+    
+    // Find next available item in fleet
+    const availableItems = await pool.query(`
+      SELECT e.*, 
+             CASE WHEN r.id IS NOT NULL THEN true ELSE false END as has_pending_request
+      FROM equipment e
+      LEFT JOIN requests r ON e.id = r.equipment_id 
+        AND r.status IN ('pending', 'approved') 
+        AND r.start_date <= $2 
+        AND r.end_date >= $1
+      WHERE e.serial_number LIKE $3 
+        AND e.status = 'available'
+        AND r.id IS NULL
+      ORDER BY e.serial_number
+      LIMIT 1
+    `, [start_date, end_date, baseSerial + '%']);
+    
+    if (availableItems.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'No available items', 
+        message: 'All items in this fleet are currently in use or under repair.' 
+      });
+    }
+    
+    res.json(availableItems.rows[0]);
+  } catch (error) {
+    console.error('Get next available equipment error:', error);
+    res.status(500).json({ error: 'Failed to get next available equipment' });
   }
 });
 

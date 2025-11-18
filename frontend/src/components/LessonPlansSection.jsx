@@ -1,8 +1,23 @@
+import { useState, useContext } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '../translations';
+import { AuthContext } from '../AuthContext';
+import AutoEquipmentRequestModal from './AutoEquipmentRequestModal';
 
-const LessonPlansSection = ({ lessonPlans, isMobile, onDelete }) => {
+const LessonPlansSection = ({ lessonPlans, isMobile, onDelete, onRefresh }) => {
   const { t } = useTranslation();
+  const { user } = useContext(AuthContext);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState(null);
+
+  const handleRequestEquipment = (lesson) => {
+    setSelectedLesson(lesson);
+    setShowRequestModal(true);
+  };
+
+  const handleRequestSuccess = () => {
+    if (onRefresh) onRefresh();
+  };
   return (
     <div style={{ padding: isMobile ? '12px' : '32px' }}>
       <h2 style={{ 
@@ -81,25 +96,58 @@ const LessonPlansSection = ({ lessonPlans, isMobile, onDelete }) => {
                       {lesson.description}
                     </p>
                   )}
+                  {lesson.start_date && lesson.end_date && (
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                      Equipment Period: {new Date(lesson.start_date).toLocaleDateString()} - {new Date(lesson.end_date).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => onDelete(lesson.id, 'lesson')}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {t('delete')}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', flexDirection: isMobile ? 'column' : 'row' }}>
+                  {user?.role === 'student' && lesson.start_date && lesson.end_date && (
+                    <button
+                      onClick={() => handleRequestEquipment(lesson)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Request Equipment
+                    </button>
+                  )}
+                  {(user?.role === 'teacher' || user?.role === 'admin') && (
+                    <button
+                      onClick={() => onDelete(lesson.id, 'lesson')}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {t('delete')}
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
         </div>
+      )}
+      
+      {showRequestModal && selectedLesson && (
+        <AutoEquipmentRequestModal
+          lessonPlan={selectedLesson}
+          onClose={() => setShowRequestModal(false)}
+          onSuccess={handleRequestSuccess}
+        />
       )}
     </div>
   );
