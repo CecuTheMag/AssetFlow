@@ -66,7 +66,7 @@ const AuthPage = () => {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: isMobile ? '400px' : 'var(--modal-max-width, 1200px)',
+        maxWidth: isMobile ? '400px' : '1200px',
         background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(20px)',
         borderRadius: '24px',
@@ -125,7 +125,7 @@ const AuthPage = () => {
             </div>
             
             <h1 style={{
-              fontSize: isMobile ? '28px' : 'var(--font-4xl, 36px)',
+              fontSize: isMobile ? '28px' : '36px',
               fontWeight: '800',
               margin: '0 0 8px 0',
               background: 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)',
@@ -181,7 +181,7 @@ const AuthPage = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <h2 style={{
-              fontSize: isMobile ? '24px' : 'var(--font-3xl, 32px)',
+              fontSize: isMobile ? '24px' : '32px',
               fontWeight: '800',
               color: '#0f172a',
               margin: '0 0 8px 0'

@@ -253,7 +253,8 @@ const Sidebar = ({ activeTab, setActiveTab, user }) => {
       display: 'flex',
       flexDirection: 'column',
       backdropFilter: 'blur(20px)',
-      borderRight: '1px solid rgba(255, 255, 255, 0.1)'
+      borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+      overflow: 'hidden'
     }}>
       {renderSidebarContent()}
     </div>
@@ -313,7 +314,15 @@ const Sidebar = ({ activeTab, setActiveTab, user }) => {
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex: 1, padding: '32px 0' }}>
+        <nav style={{ 
+          flex: 1, 
+          padding: '32px 0',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          minHeight: 0,
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent'
+        }}>
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -442,3 +451,25 @@ const Sidebar = ({ activeTab, setActiveTab, user }) => {
 };
 
 export default Sidebar;
+
+// Add scrollbar styling
+const style = document.createElement('style');
+style.textContent = `
+  nav::-webkit-scrollbar {
+    width: 6px;
+  }
+  nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+  nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+`;
+if (!document.head.querySelector('style[data-sidebar-scroll]')) {
+  style.setAttribute('data-sidebar-scroll', 'true');
+  document.head.appendChild(style);
+}

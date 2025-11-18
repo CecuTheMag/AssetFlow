@@ -84,7 +84,7 @@ const HomePage = ({ onGetStarted }) => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: isMobile ? '80px 20px 40px 20px' : '0 20px',
+        padding: isMobile ? '80px 20px 40px 20px' : '100px 20px 0 20px',
         textAlign: 'center'
       }}>
         <motion.div
@@ -448,7 +448,7 @@ const DetailedSection = () => {
               <div style={{
                 fontSize: '72px',
                 marginBottom: '20px',
-                marginTop: isMobile ? '20px' : '0',
+                marginTop: isMobile ? '40px' : '0',
                 filter: 'drop-shadow(0 0 30px rgba(59, 130, 246, 0.5))'
               }}>
                 {['🎯', '🔄', '🎓'][index]}
