@@ -208,7 +208,8 @@ export const initDB = async () => {
       ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id),
       ADD COLUMN IF NOT EXISTS grade_level VARCHAR(20),
       ADD COLUMN IF NOT EXISTS subject_specialization VARCHAR(100),
-      ADD COLUMN IF NOT EXISTS responsibility_score INTEGER DEFAULT 100
+      ADD COLUMN IF NOT EXISTS responsibility_score INTEGER DEFAULT 100,
+      ADD COLUMN IF NOT EXISTS subject_id INTEGER REFERENCES subjects(id)
     `);
 
     // Update qr_code column to TEXT
