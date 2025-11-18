@@ -6,6 +6,7 @@ const { Pool } = pkg;
 import dotenv from 'dotenv';
 import { createDefaultAdmin } from './utils/createAdmin.js';
 import { createSampleData } from './utils/createSampleData.js';
+import migrationRunner from './utils/migrationRunner.js';
 
 // Load environment variables
 dotenv.config();
@@ -316,6 +317,9 @@ export const initDB = async () => {
 
     
     console.log('Database tables and indexes initialized successfully');
+    
+    // Run migrations
+    await migrationRunner.runMigrations();
     
     // create default admin account
     await createDefaultAdmin();

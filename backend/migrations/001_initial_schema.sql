@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
   role VARCHAR(20) DEFAULT 'student' CHECK (role IN ('student', 'teacher', 'manager', 'admin')),
+  subject_id INTEGER REFERENCES subjects(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

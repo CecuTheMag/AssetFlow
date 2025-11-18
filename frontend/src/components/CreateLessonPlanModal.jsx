@@ -40,19 +40,7 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
   const fetchSubjects = async () => {
     try {
       const response = await education.getSubjects();
-      const allSubjects = response.data;
-      
-      // Get current user info
-      const userStr = localStorage.getItem('user');
-      const currentUser = userStr ? JSON.parse(userStr) : null;
-      
-      // Filter subjects based on user role and assignment
-      let filteredSubjects = allSubjects;
-      if (currentUser?.role === 'teacher' && currentUser?.subject_id) {
-        filteredSubjects = allSubjects.filter(subject => subject.id === currentUser.subject_id);
-      }
-      
-      setSubjects(filteredSubjects);
+      setSubjects(response.data); // Backend now handles filtering
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
     }
@@ -71,13 +59,16 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
       // If teacher, filter equipment by their subject's fleets
       if (currentUser?.role === 'teacher' && currentUser?.subject_id) {
         const subjectsResponse = await education.getSubjects();
-        const teacherSubject = subjectsResponse.data.find(s => s.id === currentUser.subject_id);
+        const teacherSubject = subjectsResponse.data[0]; // Backend returns only teacher's subject
         
         if (teacherSubject?.equipment_fleets?.length > 0) {
           availableItems = availableItems.filter(item => {
             const baseSerial = item.serial_number.replace(/\d{3}$/, '');
             return teacherSubject.equipment_fleets.includes(baseSerial);
           });
+        } else {
+          // If no fleets assigned, show no equipment
+          availableItems = [];
         }
       }
       

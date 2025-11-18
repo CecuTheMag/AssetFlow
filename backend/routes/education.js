@@ -22,10 +22,21 @@ router.get('/curriculum-test', (req, res) => {
   res.json({ message: 'Curriculum endpoint working' });
 });
 
-// Get all subjects
+// Get subjects (filtered for teachers)
 router.get('/subjects', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM subjects ORDER BY name');
+    let query = 'SELECT * FROM subjects';
+    let params = [];
+    
+    // If user is a teacher, only show their assigned subject
+    if (req.user.role === 'teacher' && req.user.subject_id) {
+      query += ' WHERE id = $1';
+      params.push(req.user.subject_id);
+    }
+    
+    query += ' ORDER BY name';
+    
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch subjects' });
@@ -138,6 +149,11 @@ router.post('/lesson-plans', authenticateToken, requireTeacherOrAdmin, async (re
   try {
     const { subject_id, title, description, learning_objectives, lesson_date, duration_minutes, grade_level, required_equipment, start_date, end_date } = req.body;
     
+    // If user is a teacher, ensure they can only create lesson plans for their assigned subject
+    if (req.user.role === 'teacher' && req.user.subject_id && subject_id !== req.user.subject_id) {
+      return res.status(403).json({ error: 'Teachers can only create lesson plans for their assigned subject' });
+    }
+    
     const result = await pool.query(`
       INSERT INTO lesson_plans (teacher_id, subject_id, title, description, learning_objectives, 
                                required_equipment, lesson_date, duration_minutes, grade_level, start_date, end_date)
@@ -156,20 +172,32 @@ router.post('/lesson-plans', authenticateToken, requireTeacherOrAdmin, async (re
 // Get comprehensive curriculum mapping
 router.get('/curriculum', authenticateToken, async (req, res) => {
   try {
-    // Get subjects with lesson counts, fleet information, and assigned teacher
-    const subjects = await pool.query(`
+    let subjectQuery = `
       SELECT s.*, 
              COUNT(DISTINCT lp.id) as lesson_count,
              u.username as assigned_teacher
       FROM subjects s
       LEFT JOIN lesson_plans lp ON s.id = lp.subject_id
       LEFT JOIN users u ON s.id = u.subject_id AND u.role = 'teacher'
+    `;
+    let subjectParams = [];
+    
+    // If user is a teacher, only show their assigned subject
+    if (req.user.role === 'teacher' && req.user.subject_id) {
+      subjectQuery += ` WHERE s.id = $1`;
+      subjectParams.push(req.user.subject_id);
+    }
+    
+    subjectQuery += `
       GROUP BY s.id, s.name, s.code, s.description, s.grade_level, s.room, s.equipment_fleets, u.username
       ORDER BY s.name
-    `);
+    `;
+    
+    // Get subjects with lesson counts, fleet information, and assigned teacher
+    const subjects = await pool.query(subjectQuery, subjectParams);
 
-    // Get equipment fleets data
-    const fleets = await pool.query(`
+    // Get equipment fleets data (filtered by teacher's subject if applicable)
+    let fleetQuery = `
       SELECT
         CASE
           WHEN RIGHT(serial_number, 3) ~ '^[0-9]{3}$'
@@ -182,9 +210,34 @@ router.get('/curriculum', authenticateToken, async (req, res) => {
         COUNT(CASE WHEN status = 'available' THEN 1 END) AS available_count
       FROM equipment
       WHERE serial_number IS NOT NULL
+    `;
+    let fleetParams = [];
+    
+    // If user is a teacher, only show fleets assigned to their subject
+    if (req.user.role === 'teacher' && req.user.subject_id && subjects.rows.length > 0) {
+      const teacherSubject = subjects.rows[0];
+      if (teacherSubject.equipment_fleets && teacherSubject.equipment_fleets.length > 0) {
+        const fleetConditions = teacherSubject.equipment_fleets.map((_, index) => `$${index + 1}`).join(', ');
+        fleetQuery += ` AND (
+          CASE
+            WHEN RIGHT(serial_number, 3) ~ '^[0-9]{3}$'
+              THEN LEFT(serial_number, GREATEST(LENGTH(serial_number) - 3, 0))
+            ELSE serial_number
+          END
+        ) IN (${fleetConditions})`;
+        fleetParams = teacherSubject.equipment_fleets;
+      } else {
+        // If teacher has no assigned fleets, return empty result
+        fleetQuery += ` AND 1 = 0`;
+      }
+    }
+    
+    fleetQuery += `
       GROUP BY base_serial, name, type
       ORDER BY name
-    `);
+    `;
+    
+    const fleets = await pool.query(fleetQuery, fleetParams);
 
     const subjectsWithFleets = subjects.rows.map(subject => {
       const subjectFleets = subject.equipment_fleets || [];
