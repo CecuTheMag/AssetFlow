@@ -59,8 +59,19 @@ export const initDB = async () => {
         code VARCHAR(20) UNIQUE,
         description TEXT,
         grade_level VARCHAR(20),
+        room VARCHAR(50),
+        teacher_name VARCHAR(100),
+        equipment_fleets TEXT[],
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add new columns if they don't exist
+    await pool.query(`
+      ALTER TABLE subjects 
+      ADD COLUMN IF NOT EXISTS room VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS teacher_name VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS equipment_fleets TEXT[]
     `);
 
     // ===== USERS TABLE =====

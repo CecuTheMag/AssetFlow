@@ -158,6 +158,27 @@ const CurriculumSection = ({ subjects, isMobile, onDelete, onEdit, onAdd }) => {
                     <span style={{ color: '#374151', fontWeight: '500' }}>{subject.total_equipment || 0}</span>
                   </div>
                 </div>
+                
+                {/* Equipment Fleets List */}
+                {subject.fleets && subject.fleets.length > 0 && (
+                  <div style={{ marginTop: '8px' }}>
+                    <span style={{ color: '#6b7280', fontSize: '11px', fontWeight: '500' }}>Assigned Fleets:</span>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {subject.fleets.map((fleet, idx) => (
+                        <span key={idx} style={{
+                          padding: '2px 6px',
+                          backgroundColor: '#e0f2fe',
+                          color: '#0369a1',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: '500'
+                        }}>
+                          {fleet.name} ({fleet.total_count})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

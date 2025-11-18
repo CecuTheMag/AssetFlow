@@ -35,12 +35,12 @@ const EducationTab = () => {
       const [lessonResponse, subjectsResponse, curriculumResponse] = await Promise.all([
         education.getLessonPlans().catch(() => ({ data: [] })),
         education.getSubjects().catch(() => ({ data: [] })),
-        education.getCurriculum().catch(() => ({ data: { subjects: [], coverage_gaps: [], summary: {} } }))
+        education.getCurriculum().catch(() => ({ data: { subjects: [], summary: {} } }))
       ]);
 
       setLessonPlans(lessonResponse.data || []);
       setSubjects(subjectsResponse.data || []);
-      setCurriculum(curriculumResponse.data || { subjects: [], coverage_gaps: [], summary: {} });
+      setCurriculum(curriculumResponse.data || { subjects: [], summary: {} });
     } catch (error) {
       console.error('Error fetching education data:', error);
     } finally {
@@ -394,9 +394,9 @@ const EducationTab = () => {
                 textAlign: 'center'
               }}>
                 <div style={{ fontSize: '24px', fontWeight: '700' }}>
-                  {curriculum.summary.subjects_with_equipment}
+                  {curriculum.summary.subjects_with_fleets}
                 </div>
-                <div style={{ fontSize: '12px', opacity: 0.9 }}>{t('withEquipment')}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>With Fleets</div>
               </div>
               <div style={{
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
@@ -426,55 +426,7 @@ const EducationTab = () => {
           )}
         </div>
 
-        {/* Coverage Gaps Alert */}
-        {curriculum.coverage_gaps && curriculum.coverage_gaps.filter(gap => gap.coverage_status !== 'Covered').length > 0 && (
-          <div style={{
-            background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-            border: '1px solid #f59e0b',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '24px'
-          }}>
-            <h3 style={{ 
-              margin: '0 0 12px 0', 
-              color: '#92400e', 
-              fontSize: '18px', 
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              ⚠️ {t('coverageGapsDetected')}
-            </h3>
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {curriculum.coverage_gaps.filter(gap => gap.coverage_status !== 'Covered').map(gap => (
-                <div key={gap.code} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(255, 255, 255, 0.7)',
-                  borderRadius: '8px'
-                }}>
-                  <div>
-                    <span style={{ fontWeight: '600', color: '#92400e' }}>{gap.name}</span>
-                    <span style={{ color: '#6b7280', fontSize: '12px', marginLeft: '8px' }}>({gap.code})</span>
-                  </div>
-                  <span style={{
-                    padding: '4px 8px',
-                    backgroundColor: getCoverageColor(gap.coverage_status),
-                    color: 'white',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}>
-                    {gap.coverage_status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* Subject Cards */}
         <div style={{ 
@@ -485,9 +437,7 @@ const EducationTab = () => {
           maxWidth: '100%'
         }}>
           {curriculum.subjects.map((subject) => {
-            const coverageGap = curriculum.coverage_gaps?.find(gap => gap.code === subject.code);
-            const hasEquipment = parseInt(subject.equipment_count) > 0;
-            const impactScore = parseFloat(subject.avg_impact_score) || 0;
+            const hasFleets = parseInt(subject.fleet_count) > 0;
             
             return (
               <motion.div
@@ -497,17 +447,10 @@ const EducationTab = () => {
                 style={{
                   background: 'rgba(255, 255, 255, 0.95)',
                   backdropFilter: 'blur(20px)',
-                  border: `2px solid ${hasEquipment ? '#10b981' : '#e5e7eb'}`,
+                  border: `2px solid ${hasFleets ? '#10b981' : '#e5e7eb'}`,
                   borderRadius: '16px',
                   padding: '24px',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                whileHover={{ scale: 1.02, boxShadow: '0 12px 40px rgba(0, 0, 0, 0.12)' }}
-                onClick={() => {
-                  setSelectedSubject(subject);
-                  fetchRecommendations(subject.code);
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
                 }}
               >
                 {/* Subject Header */}
@@ -522,18 +465,7 @@ const EducationTab = () => {
                     }}>
                       {subject.name}
                     </h3>
-                    {coverageGap && (
-                      <span style={{
-                        padding: '4px 8px',
-                        backgroundColor: getCoverageColor(coverageGap.coverage_status),
-                        color: 'white',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        fontWeight: '600'
-                      }}>
-                        {coverageGap.coverage_status}
-                      </span>
-                    )}
+
                   </div>
                   
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -552,42 +484,43 @@ const EducationTab = () => {
                         {t('grades')} {subject.grade_level}
                       </span>
                     )}
-                    {impactScore > 0 && (
-                      <span style={{
-                        color: getImpactColor(impactScore),
-                        fontSize: '12px',
-                        fontWeight: '600'
-                      }}>
-                        ★ {impactScore.toFixed(1)} Impact
+                    {subject.room && (
+                      <span style={{ color: '#6b7280', fontSize: '12px' }}>
+                        📍 {subject.room}
+                      </span>
+                    )}
+                    {subject.teacher_name && (
+                      <span style={{ color: '#6b7280', fontSize: '12px' }}>
+                        👨‍🏫 {subject.teacher_name}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Equipment Overview */}
+                {/* Equipment Fleets Overview */}
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{t('equipmentPortfolio')}</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Equipment Fleets</span>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {subject.equipment_count} {t('items')} • {subject.available_equipment} {t('available')}
+                      {subject.fleet_count} fleets • {subject.total_equipment} items
                     </span>
                   </div>
                   
-                  {hasEquipment ? (
+                  {hasFleets ? (
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {subject.equipment.slice(0, 4).map((eq, idx) => (
+                      {subject.fleets.slice(0, 4).map((fleet, idx) => (
                         <span key={idx} style={{
                           padding: '2px 6px',
-                          backgroundColor: eq.status === 'available' ? '#dcfce7' : '#fef3c7',
-                          color: eq.status === 'available' ? '#166534' : '#92400e',
+                          backgroundColor: '#dcfce7',
+                          color: '#166534',
                           borderRadius: '4px',
                           fontSize: '10px',
                           fontWeight: '500'
                         }}>
-                          {eq.type}
+                          {fleet.name} ({fleet.total_count})
                         </span>
                       ))}
-                      {subject.equipment.length > 4 && (
+                      {subject.fleets.length > 4 && (
                         <span style={{
                           padding: '2px 6px',
                           backgroundColor: '#f3f4f6',
@@ -595,7 +528,7 @@ const EducationTab = () => {
                           borderRadius: '4px',
                           fontSize: '10px'
                         }}>
-                          +{subject.equipment.length - 4} {t('more')}
+                          +{subject.fleets.length - 4} more
                         </span>
                       )}
                     </div>
@@ -609,7 +542,7 @@ const EducationTab = () => {
                       color: '#dc2626',
                       fontSize: '12px'
                     }}>
-                      {t('noEquipmentMapped')}
+                      No equipment fleets assigned
                     </div>
                   )}
                 </div>
@@ -617,7 +550,7 @@ const EducationTab = () => {
                 {/* Statistics Grid */}
                 <div style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: 'repeat(3, 1fr)', 
+                  gridTemplateColumns: 'repeat(2, 1fr)', 
                   gap: '12px'
                 }}>
                   <div style={{ textAlign: 'center' }}>
@@ -642,53 +575,29 @@ const EducationTab = () => {
                       fontWeight: '700', 
                       color: '#10b981' 
                     }}>
-                      {subject.teacher_count || 0}
+                      {subject.fleet_count || 0}
                     </div>
                     <div style={{ 
                       fontSize: '10px', 
                       color: '#6b7280',
                       fontWeight: '500'
                     }}>
-                      {t('teachers')}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                      fontSize: '20px', 
-                      fontWeight: '700', 
-                      color: '#f59e0b' 
-                    }}>
-                      {subject.total_requests || 0}
-                    </div>
-                    <div style={{ 
-                      fontSize: '10px', 
-                      color: '#6b7280',
-                      fontWeight: '500'
-                    }}>
-                      {t('requests')}
+                      Fleets
                     </div>
                   </div>
                 </div>
 
-                {/* Usage Trend Indicator */}
-                {subject.trends && subject.trends.length > 0 && (
+                {/* Subject Description */}
+                {subject.description && (
                   <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', color: '#6b7280' }}>{t('recentActivity')}</span>
-                      <div style={{ display: 'flex', gap: '2px' }}>
-                        {subject.trends.slice(0, 6).map((trend, idx) => {
-                          const height = Math.max(4, (trend.request_count / 10) * 16);
-                          return (
-                            <div key={idx} style={{
-                              width: '3px',
-                              height: `${height}px`,
-                              backgroundColor: '#3b82f6',
-                              borderRadius: '2px'
-                            }} />
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <p style={{ 
+                      margin: 0, 
+                      color: '#6b7280', 
+                      fontSize: '12px',
+                      lineHeight: '1.4'
+                    }}>
+                      {subject.description}
+                    </p>
                   </div>
                 )}
               </motion.div>
@@ -696,198 +605,7 @@ const EducationTab = () => {
           })}
         </div>
 
-        {/* Subject Detail Modal */}
-        {selectedSubject && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              style={{
-                backgroundColor: 'white',
-                borderRadius: '20px',
-                padding: '32px',
-                maxWidth: '800px',
-                width: '100%',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <div>
-                  <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>
-                    {selectedSubject.name} {t('integration')}
-                  </h2>
-                  <p style={{ margin: 0, color: '#64748b', fontSize: '16px' }}>
-                    {t('equipmentMappingRecommendations')}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedSubject(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#64748b',
-                    padding: '4px'
-                  }}
-                >
-                  ×
-                </button>
-              </div>
 
-              {loadingRecommendations ? (
-                <div style={{ textAlign: 'center', padding: '40px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    border: '4px solid #e2e8f0',
-                    borderTop: '4px solid #3b82f6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto 16px'
-                  }}></div>
-                  <p style={{ color: '#64748b' }}>{t('loadingRecommendations')}</p>
-                </div>
-              ) : recommendations ? (
-                <div style={{ display: 'grid', gap: '24px' }}>
-                  {/* Current Equipment */}
-                  <div>
-                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#0f172a' }}>
-                      📋 {t('currentEquipmentPortfolio')}
-                    </h3>
-                    {recommendations.current_equipment.length > 0 ? (
-                      <div style={{ display: 'grid', gap: '8px' }}>
-                        {recommendations.current_equipment.map((eq, idx) => (
-                          <div key={idx} style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 16px',
-                            backgroundColor: '#f8fafc',
-                            borderRadius: '8px',
-                            border: '1px solid #e2e8f0'
-                          }}>
-                            <div>
-                              <span style={{ fontWeight: '600', color: '#0f172a' }}>{eq.type}</span>
-                              <span style={{ color: '#64748b', fontSize: '14px', marginLeft: '8px' }}>({eq.count} items)</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{
-                                color: getImpactColor(eq.avg_score),
-                                fontWeight: '600',
-                                fontSize: '14px'
-                              }}>
-                                ★ {typeof eq.avg_score === 'number' ? eq.avg_score.toFixed(1) : 'N/A'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{
-                        padding: '20px',
-                        backgroundColor: '#fef2f2',
-                        borderRadius: '8px',
-                        textAlign: 'center',
-                        color: '#dc2626'
-                      }}>
-                        {t('noEquipmentCurrentlyMapped')}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Recommendations */}
-                  {recommendations.recommended_additions.length > 0 && (
-                    <div>
-                      <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#0f172a' }}>
-                        💡 {t('recommendedAdditions')}
-                      </h3>
-                      <div style={{ display: 'grid', gap: '8px' }}>
-                        {recommendations.recommended_additions.map((eq, idx) => (
-                          <div key={idx} style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 16px',
-                            backgroundColor: '#f0f9ff',
-                            borderRadius: '8px',
-                            border: '1px solid #bae6fd'
-                          }}>
-                            <div>
-                              <span style={{ fontWeight: '600', color: '#0f172a' }}>{eq.type}</span>
-                              <span style={{ color: '#64748b', fontSize: '14px', marginLeft: '8px' }}>{t('usedByOtherSubjects')} {eq.usage_count} {t('otherSubjects')}</span>
-                            </div>
-                            <div style={{
-                              padding: '4px 8px',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600'
-                            }}>
-                              ★ {typeof eq.avg_score === 'number' ? eq.avg_score.toFixed(1) : 'N/A'}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Gap Analysis */}
-                  {recommendations.gap_analysis.length > 0 && (
-                    <div>
-                      <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#0f172a' }}>
-                        🎯 {t('highImpactGaps')}
-                      </h3>
-                      <div style={{ display: 'grid', gap: '8px' }}>
-                        {recommendations.gap_analysis.map((gap, idx) => (
-                          <div key={idx} style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 16px',
-                            backgroundColor: '#fef3c7',
-                            borderRadius: '8px',
-                            border: '1px solid #fcd34d'
-                          }}>
-                            <div>
-                              <span style={{ fontWeight: '600', color: '#92400e' }}>{gap.type}</span>
-                              <span style={{ color: '#6b7280', fontSize: '14px', marginLeft: '8px' }}>{t('usedByOtherSubjects')} {gap.subject_count} {t('subjects')}</span>
-                            </div>
-                            <div style={{
-                              padding: '4px 8px',
-                              backgroundColor: '#f59e0b',
-                              color: 'white',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '600'
-                            }}>
-                              ★ {typeof gap.avg_impact === 'number' ? gap.avg_impact.toFixed(1) : 'N/A'} {t('impact')}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </motion.div>
-          </div>
-        )}
       </div>
     );
   };

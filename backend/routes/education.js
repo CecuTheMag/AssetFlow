@@ -78,11 +78,11 @@ router.put('/lesson-plans/:id', authenticateToken, requireTeacherOrAdmin, async 
 // Create subject
 router.post('/subjects', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
-    const { name, code, description, grade_level } = req.body;
+    const { name, code, description, grade_level, room, teacher_name, equipment_fleets } = req.body;
     
     const result = await pool.query(
-      'INSERT INTO subjects (name, code, description, grade_level) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, code, description, grade_level]
+      'INSERT INTO subjects (name, code, description, grade_level, room, teacher_name, equipment_fleets) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [name, code, description, grade_level, room, teacher_name, equipment_fleets || []]
     );
     
     res.status(201).json(result.rows[0]);
@@ -99,11 +99,11 @@ router.post('/subjects', authenticateToken, requireTeacherOrAdmin, async (req, r
 router.put('/subjects/:id', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, description, grade_level } = req.body;
+    const { name, code, description, grade_level, room, teacher_name, equipment_fleets } = req.body;
     
     const result = await pool.query(
-      'UPDATE subjects SET name = $1, code = $2, description = $3, grade_level = $4 WHERE id = $5 RETURNING *',
-      [name, code, description, grade_level, id]
+      'UPDATE subjects SET name = $1, code = $2, description = $3, grade_level = $4, room = $5, teacher_name = $6, equipment_fleets = $7 WHERE id = $8 RETURNING *',
+      [name, code, description, grade_level, room, teacher_name, equipment_fleets || [], id]
     );
     
     if (result.rows.length === 0) {
@@ -143,96 +143,58 @@ router.post('/lesson-plans', authenticateToken, requireTeacherOrAdmin, async (re
 // Get comprehensive curriculum mapping
 router.get('/curriculum', authenticateToken, async (req, res) => {
   try {
-    // Get subjects with real teacher counts and lesson data
+    // Get subjects with lesson counts and fleet information
     const subjects = await pool.query(`
       SELECT s.*, 
              COUNT(DISTINCT lp.id) as lesson_count
       FROM subjects s
       LEFT JOIN lesson_plans lp ON s.id = lp.subject_id
-      GROUP BY s.id, s.name, s.code, s.description, s.grade_level
+      GROUP BY s.id, s.name, s.code, s.description, s.grade_level, s.room, s.teacher_name, s.equipment_fleets
       ORDER BY s.name
     `);
 
-    // Get request counts for each subject's equipment
-    const requestCounts = await pool.query(`
-      SELECT s.id as subject_id, COUNT(r.id) as request_count
-      FROM subjects s
-      LEFT JOIN requests r ON r.equipment_id IN (
-        SELECT e.id FROM equipment e WHERE e.type = ANY(
-          CASE s.code
-            WHEN 'MATH' THEN ARRAY['laptop', 'projector', 'tablet']
-            WHEN 'SCI' THEN ARRAY['microscope', 'projector', 'laptop', 'camera']
-            WHEN 'CS' THEN ARRAY['laptop', 'tablet', 'projector']
-            WHEN 'ENG' THEN ARRAY['projector', 'laptop', 'tablet', 'speaker']
-            WHEN 'HIST' THEN ARRAY['projector', 'laptop', 'tablet']
-            WHEN 'ART' THEN ARRAY['tablet', 'camera', 'projector']
-            WHEN 'MUS' THEN ARRAY['speaker', 'laptop', 'projector']
-            WHEN 'PE' THEN ARRAY['speaker', 'camera']
-            ELSE ARRAY[]::text[]
-          END
-        )
-      )
-      GROUP BY s.id
-    `);
-
-    // Get all equipment
-    const allEquipment = await pool.query(`
-      SELECT id, name, type, status, serial_number
+    // Get equipment fleets data
+    const fleets = await pool.query(`
+      SELECT
+        CASE
+          WHEN RIGHT(serial_number, 3) ~ '^[0-9]{3}$'
+            THEN LEFT(serial_number, GREATEST(LENGTH(serial_number) - 3, 0))
+          ELSE serial_number
+        END AS base_serial,
+        name,
+        type,
+        COUNT(*) AS total_count,
+        COUNT(CASE WHEN status = 'available' THEN 1 END) AS available_count
       FROM equipment
-      ORDER BY type, name
+      WHERE serial_number IS NOT NULL
+      GROUP BY base_serial, name, type
+      ORDER BY name
     `);
 
-    // Equipment type mapping
-    const equipmentTypeMapping = {
-      'MATH': ['laptop', 'projector', 'tablet'],
-      'SCI': ['microscope', 'projector', 'laptop', 'camera'],
-      'CS': ['laptop', 'tablet', 'projector'],
-      'ENG': ['projector', 'laptop', 'tablet', 'speaker'],
-      'HIST': ['projector', 'laptop', 'tablet'],
-      'ART': ['tablet', 'camera', 'projector'],
-      'MUS': ['speaker', 'laptop', 'projector'],
-      'PE': ['speaker', 'camera']
-    };
-
-    const subjectsWithEquipment = subjects.rows.map(subject => {
-      const relevantTypes = equipmentTypeMapping[subject.code] || [];
-      const equipment = allEquipment.rows.filter(eq => 
-        relevantTypes.some(type => eq.type.toLowerCase().includes(type.toLowerCase()))
+    const subjectsWithFleets = subjects.rows.map(subject => {
+      const subjectFleets = subject.equipment_fleets || [];
+      const matchingFleets = fleets.rows.filter(fleet => 
+        subjectFleets.includes(fleet.base_serial)
       );
       
-      const requestData = requestCounts.rows.find(rc => rc.subject_id === subject.id);
+      const fleetCount = matchingFleets.length;
+      const totalEquipment = matchingFleets.reduce((sum, fleet) => sum + parseInt(fleet.total_count), 0);
       
       return {
         ...subject,
-        equipment_count: equipment.length,
-        available_equipment: equipment.filter(eq => eq.status === 'available').length,
-        total_requests: parseInt(requestData?.request_count) || 0,
-        avg_impact_score: equipment.length > 0 ? (3.8 + Math.random() * 0.8) : 0,
-        equipment: equipment.slice(0, 5)
+        fleet_count: fleetCount,
+        total_equipment: totalEquipment,
+        fleets: matchingFleets
       };
     });
 
-    const coverageGaps = subjectsWithEquipment.map(subject => ({
-      code: subject.code,
-      name: subject.name,
-      grade_level: subject.grade_level,
-      coverage_status: 
-        subject.equipment_count === 0 ? 'No Equipment' :
-        subject.available_equipment === 0 ? 'No Available Equipment' :
-        parseInt(subject.lesson_count) === 0 ? 'No Lesson Plans' : 'Covered',
-      total_equipment: subject.equipment_count,
-      available_equipment: subject.available_equipment,
-      lesson_plans: parseInt(subject.lesson_count)
-    }));
-
     const response = {
-      subjects: subjectsWithEquipment,
-      coverage_gaps: coverageGaps,
+      subjects: subjectsWithFleets,
       summary: {
         total_subjects: subjects.rows.length,
-        subjects_with_equipment: subjectsWithEquipment.filter(s => s.equipment_count > 0).length,
-        subjects_with_lessons: subjectsWithEquipment.filter(s => parseInt(s.lesson_count) > 0).length,
-        total_equipment_mapped: subjectsWithEquipment.reduce((sum, s) => sum + s.equipment_count, 0)
+        subjects_with_fleets: subjectsWithFleets.filter(s => s.fleet_count > 0).length,
+        subjects_with_lessons: subjectsWithFleets.filter(s => parseInt(s.lesson_count) > 0).length,
+        total_equipment_mapped: subjectsWithFleets.reduce((sum, s) => sum + s.total_equipment, 0)
       }
     };
 
