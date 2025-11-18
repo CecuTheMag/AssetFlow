@@ -4,6 +4,10 @@ export const createEducationalData = async () => {
   try {
     console.log('🏫 Creating educational sample data...');
 
+    // Clear existing lesson plans
+    await pool.query('DELETE FROM lesson_plans');
+    console.log('Cleared existing lesson plans');
+
     // Create sample schools
     const schools = [
       { name: 'Tech Academy High School', district_id: 1, address: 'Sofia, Bulgaria', principal_name: 'Dr. Maria Petrova', contact_email: 'principal@techacademy.bg', phone: '+359 2 123 4567' },
@@ -59,75 +63,9 @@ export const createEducationalData = async () => {
       }
     }
 
-    // Create sample lesson plans
-    const lessonPlans = [
-      {
-        title: 'Introduction to Algebra',
-        subject: 'MATH',
-        description: 'Basic algebraic concepts and equations',
-        objectives: ['Understand variables', 'Solve linear equations', 'Apply algebra to real problems'],
-        required_equipment: ['projector', 'laptop'],
-        suggested_equipment: ['tablet', 'smartboard'],
-        grade_level: '8'
-      },
-      {
-        title: 'Cell Structure and Function',
-        subject: 'SCI',
-        description: 'Exploring cellular biology through microscopy',
-        objectives: ['Identify cell parts', 'Understand cell functions', 'Compare plant and animal cells'],
-        required_equipment: ['microscope'],
-        suggested_equipment: ['camera', 'projector'],
-        grade_level: '9'
-      },
-      {
-        title: 'Digital Art Creation',
-        subject: 'ART',
-        description: 'Creating digital artwork using modern tools',
-        objectives: ['Master digital tools', 'Create original artwork', 'Understand digital composition'],
-        required_equipment: ['tablet', 'laptop'],
-        suggested_equipment: ['camera', 'projector'],
-        grade_level: '10'
-      }
-    ];
 
-    // Get or create teacher user
-    let teacherResult = await pool.query('SELECT id FROM users WHERE role = $1 LIMIT 1', ['teacher']);
-    if (teacherResult.rows.length === 0) {
-      // Create a sample teacher if none exists
-      const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.default.hash('teacher123', 12);
-      await pool.query(
-        'INSERT INTO users (username, email, password, role, subject_specialization) VALUES ($1, $2, $3, $4, $5)',
-        ['teacher1', 'teacher@school.bg', hashedPassword, 'teacher', 'Mathematics']
-      );
-      teacherResult = await pool.query('SELECT id FROM users WHERE username = $1', ['teacher1']);
-    }
-    const teacherId = teacherResult.rows[0].id;
 
-    // Create lesson plans
-    for (const lesson of lessonPlans) {
-      try {
-        const subjectResult = await pool.query('SELECT id FROM subjects WHERE code = $1', [lesson.subject]);
-        if (subjectResult.rows.length > 0) {
-          // Check if lesson already exists
-          const existingLesson = await pool.query(
-            'SELECT id FROM lesson_plans WHERE title = $1 AND teacher_id = $2',
-            [lesson.title, teacherId]
-          );
-          
-          if (existingLesson.rows.length === 0) {
-            await pool.query(
-              'INSERT INTO lesson_plans (teacher_id, subject_id, title, description, learning_objectives, required_equipment, suggested_equipment, grade_level, lesson_date, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-              [teacherId, subjectResult.rows[0].id, lesson.title, lesson.description, lesson.objectives, lesson.required_equipment, lesson.suggested_equipment, lesson.grade_level, new Date(), 45]
-            );
-          }
-        }
-      } catch (error) {
-        console.log(`Could not create lesson ${lesson.title}:`, error.message);
-      }
-    }
-
-    console.log('✅ Educational sample data created successfully');
+    console.log('✅ Educational sample data created successfully (no lesson plans)');
   } catch (error) {
     console.error('❌ Error creating educational data:', error);
   }

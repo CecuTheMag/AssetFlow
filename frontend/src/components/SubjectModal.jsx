@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { education } from '../api';
+import { education, equipment } from '../api';
 import { toast } from './Toast';
 import { useTranslation } from '../translations';
 
@@ -10,8 +10,12 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
     name: '',
     code: '',
     description: '',
-    grade_level: ''
+    grade_level: '',
+    room: '',
+    teacher_name: '',
+    equipment_fleets: []
   });
+  const [equipmentFleets, setEquipmentFleets] = useState([]);
   const [loading, setLoading] = useState(false);
   const isEdit = !!subject;
 
@@ -21,10 +25,23 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
         name: subject.name || '',
         code: subject.code || '',
         description: subject.description || '',
-        grade_level: subject.grade_level || ''
+        grade_level: subject.grade_level || '',
+        room: subject.room || '',
+        teacher_name: subject.teacher_name || '',
+        equipment_fleets: subject.equipment_fleets || []
       });
     }
+    fetchEquipmentFleets();
   }, [subject]);
+
+  const fetchEquipmentFleets = async () => {
+    try {
+      const response = await equipment.getGroups();
+      setEquipmentFleets(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch equipment fleets:', error);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -153,6 +170,71 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
                 boxSizing: 'border-box'
               }}
             />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
+              Room
+            </label>
+            <input
+              type="text"
+              value={formData.room}
+              onChange={(e) => setFormData(prev => ({ ...prev, room: e.target.value }))}
+              placeholder="e.g., Room 101, Lab A"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
+              Teacher Name
+            </label>
+            <input
+              type="text"
+              value={formData.teacher_name}
+              onChange={(e) => setFormData(prev => ({ ...prev, teacher_name: e.target.value }))}
+              placeholder="Primary teacher for this subject"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
+              Equipment Fleets
+            </label>
+            <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px' }}>
+              {equipmentFleets.map((fleet) => (
+                <label key={fleet.base_serial} style={{ display: 'flex', alignItems: 'center', padding: '4px 0', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.equipment_fleets.includes(fleet.base_serial)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, equipment_fleets: [...prev.equipment_fleets, fleet.base_serial] }));
+                      } else {
+                        setFormData(prev => ({ ...prev, equipment_fleets: prev.equipment_fleets.filter(f => f !== fleet.base_serial) }));
+                      }
+                    }}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <span style={{ fontSize: '14px' }}>{fleet.name} ({fleet.items.length} items)</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>

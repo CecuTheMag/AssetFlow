@@ -129,7 +129,7 @@ const CurriculumSection = ({ subjects, isMobile, onDelete, onEdit, onAdd }) => {
               
               {subject.description && (
                 <p style={{ 
-                  margin: 0, 
+                  margin: '8px 0 0 0', 
                   color: '#4b5563', 
                   fontSize: '14px',
                   lineHeight: '1.4'
@@ -137,6 +137,28 @@ const CurriculumSection = ({ subjects, isMobile, onDelete, onEdit, onAdd }) => {
                   {subject.description}
                 </p>
               )}
+              
+              {/* Subject Details */}
+              <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+                  <div>
+                    <span style={{ color: '#6b7280' }}>Room: </span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.room || 'Not assigned'}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: '#6b7280' }}>Teacher: </span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.teacher_name || 'Not assigned'}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: '#6b7280' }}>Equipment Fleets: </span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.fleet_count || 0}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: '#6b7280' }}>Total Items: </span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.total_equipment || 0}</span>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>
