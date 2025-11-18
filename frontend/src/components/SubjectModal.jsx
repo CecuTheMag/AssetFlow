@@ -54,7 +54,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
       const users = Array.isArray(response.data) ? response.data : [];
       const teacherUsers = users.filter(user => 
         user.role === 'teacher' && 
-        (!user.subject_id || (subject && user.subject_id === subject.id))
+        (subject ? user.subject_id === subject.id : !user.subject_id)
       );
       setTeachers(teacherUsers);
     } catch (error) {
