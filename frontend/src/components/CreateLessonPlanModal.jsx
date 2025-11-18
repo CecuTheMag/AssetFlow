@@ -58,16 +58,22 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
       
       // If teacher, filter equipment by their subject's fleets
       if (currentUser?.role === 'teacher' && currentUser?.subject_id) {
-        const subjectsResponse = await education.getSubjects();
-        const teacherSubject = subjectsResponse.data[0]; // Backend returns only teacher's subject
-        
-        if (teacherSubject?.equipment_fleets?.length > 0) {
-          availableItems = availableItems.filter(item => {
-            const baseSerial = item.serial_number.replace(/\d{3}$/, '');
-            return teacherSubject.equipment_fleets.includes(baseSerial);
-          });
-        } else {
-          // If no fleets assigned, show no equipment
+        try {
+          // Get all subjects to find teacher's subject with fleets
+          const curriculumResponse = await education.getCurriculum();
+          const teacherSubject = curriculumResponse.data.subjects.find(s => s.id === currentUser.subject_id);
+          
+          if (teacherSubject?.equipment_fleets?.length > 0) {
+            availableItems = availableItems.filter(item => {
+              const baseSerial = item.serial_number.replace(/\d{3}$/, '');
+              return teacherSubject.equipment_fleets.includes(baseSerial);
+            });
+          } else {
+            // If no fleets assigned, show no equipment
+            availableItems = [];
+          }
+        } catch (error) {
+          console.error('Failed to get teacher subject fleets:', error);
           availableItems = [];
         }
       }

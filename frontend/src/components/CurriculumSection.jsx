@@ -143,11 +143,11 @@ const CurriculumSection = ({ subjects, isMobile, onDelete, onEdit, onAdd }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
                   <div>
                     <span style={{ color: '#6b7280' }}>Room: </span>
-                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.room || 'Not assigned'}</span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.room || 'No room assigned'}</span>
                   </div>
                   <div>
                     <span style={{ color: '#6b7280' }}>Teacher: </span>
-                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.teacher_name || 'Not assigned'}</span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.assigned_teacher || 'No teacher assigned'}</span>
                   </div>
                   <div>
                     <span style={{ color: '#6b7280' }}>Equipment Fleets: </span>

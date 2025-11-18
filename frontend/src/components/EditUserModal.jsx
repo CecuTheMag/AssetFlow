@@ -27,8 +27,9 @@ const EditUserModal = ({ user, onClose, onSuccess }) => {
 
   const fetchSubjects = async () => {
     try {
-      const response = await education.getSubjects();
-      setSubjects(response.data);
+      // Get curriculum data which shows all subjects
+      const response = await education.getCurriculum();
+      setSubjects(response.data.subjects || []);
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
     }

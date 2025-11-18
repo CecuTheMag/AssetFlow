@@ -99,14 +99,34 @@ router.put('/lesson-plans/:id', authenticateToken, requireTeacherOrAdmin, async 
 // Create subject
 router.post('/subjects', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
-    const { name, code, description, grade_level, room, equipment_fleets } = req.body;
+    const { name, code, description, grade_level, room, teacher_id, equipment_fleets } = req.body;
     
-    const result = await pool.query(
-      'INSERT INTO subjects (name, code, description, grade_level, room, equipment_fleets) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [name, code, description, grade_level, room, equipment_fleets || []]
-    );
-    
-    res.status(201).json(result.rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Create subject
+      const result = await client.query(
+        'INSERT INTO subjects (name, code, description, grade_level, room, equipment_fleets) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [name, code, description, grade_level, room, equipment_fleets || []]
+      );
+      
+      // Assign teacher if provided
+      if (teacher_id) {
+        await client.query(
+          'UPDATE users SET subject_id = $1 WHERE id = $2 AND role = $3',
+          [result.rows[0].id, teacher_id, 'teacher']
+        );
+      }
+      
+      await client.query('COMMIT');
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     if (error.code === '23505') {
       return res.status(400).json({ error: 'Subject code already exists' });
@@ -120,21 +140,42 @@ router.post('/subjects', authenticateToken, requireTeacherOrAdmin, async (req, r
 router.put('/subjects/:id', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, description, grade_level, room, equipment_fleets } = req.body;
+    const { name, code, description, grade_level, room, teacher_id, equipment_fleets } = req.body;
     
-    console.log('Updating subject with equipment_fleets:', equipment_fleets);
-    
-    const result = await pool.query(
-      'UPDATE subjects SET name = $1, code = $2, description = $3, grade_level = $4, room = $5, equipment_fleets = $6 WHERE id = $7 RETURNING *',
-      [name, code, description, grade_level, room, Array.isArray(equipment_fleets) ? equipment_fleets : [], id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Subject not found' });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Update subject
+      const result = await client.query(
+        'UPDATE subjects SET name = $1, code = $2, description = $3, grade_level = $4, room = $5, equipment_fleets = $6 WHERE id = $7 RETURNING *',
+        [name, code, description, grade_level, room, Array.isArray(equipment_fleets) ? equipment_fleets : [], id]
+      );
+      
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Subject not found' });
+      }
+      
+      // Clear previous teacher assignment
+      await client.query('UPDATE users SET subject_id = NULL WHERE subject_id = $1', [id]);
+      
+      // Assign new teacher if provided
+      if (teacher_id) {
+        await client.query(
+          'UPDATE users SET subject_id = $1 WHERE id = $2 AND role = $3',
+          [id, teacher_id, 'teacher']
+        );
+      }
+      
+      await client.query('COMMIT');
+      res.json(result.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-    
-    console.log('Subject updated successfully:', result.rows[0]);
-    res.json(result.rows[0]);
   } catch (error) {
     if (error.code === '23505') {
       return res.status(400).json({ error: 'Subject code already exists' });
@@ -172,32 +213,22 @@ router.post('/lesson-plans', authenticateToken, requireTeacherOrAdmin, async (re
 // Get comprehensive curriculum mapping
 router.get('/curriculum', authenticateToken, async (req, res) => {
   try {
-    let subjectQuery = `
+    // Get subjects with lesson counts, fleet information, and assigned teacher
+    const subjectQuery = `
       SELECT s.*, 
              COUNT(DISTINCT lp.id) as lesson_count,
              u.username as assigned_teacher
       FROM subjects s
       LEFT JOIN lesson_plans lp ON s.id = lp.subject_id
       LEFT JOIN users u ON s.id = u.subject_id AND u.role = 'teacher'
-    `;
-    let subjectParams = [];
-    
-    // If user is a teacher, only show their assigned subject
-    if (req.user.role === 'teacher' && req.user.subject_id) {
-      subjectQuery += ` WHERE s.id = $1`;
-      subjectParams.push(req.user.subject_id);
-    }
-    
-    subjectQuery += `
       GROUP BY s.id, s.name, s.code, s.description, s.grade_level, s.room, s.equipment_fleets, u.username
       ORDER BY s.name
     `;
     
-    // Get subjects with lesson counts, fleet information, and assigned teacher
-    const subjects = await pool.query(subjectQuery, subjectParams);
+    const subjects = await pool.query(subjectQuery);
 
-    // Get equipment fleets data (filtered by teacher's subject if applicable)
-    let fleetQuery = `
+    // Get equipment fleets data
+    const fleets = await pool.query(`
       SELECT
         CASE
           WHEN RIGHT(serial_number, 3) ~ '^[0-9]{3}$'
@@ -210,34 +241,9 @@ router.get('/curriculum', authenticateToken, async (req, res) => {
         COUNT(CASE WHEN status = 'available' THEN 1 END) AS available_count
       FROM equipment
       WHERE serial_number IS NOT NULL
-    `;
-    let fleetParams = [];
-    
-    // If user is a teacher, only show fleets assigned to their subject
-    if (req.user.role === 'teacher' && req.user.subject_id && subjects.rows.length > 0) {
-      const teacherSubject = subjects.rows[0];
-      if (teacherSubject.equipment_fleets && teacherSubject.equipment_fleets.length > 0) {
-        const fleetConditions = teacherSubject.equipment_fleets.map((_, index) => `$${index + 1}`).join(', ');
-        fleetQuery += ` AND (
-          CASE
-            WHEN RIGHT(serial_number, 3) ~ '^[0-9]{3}$'
-              THEN LEFT(serial_number, GREATEST(LENGTH(serial_number) - 3, 0))
-            ELSE serial_number
-          END
-        ) IN (${fleetConditions})`;
-        fleetParams = teacherSubject.equipment_fleets;
-      } else {
-        // If teacher has no assigned fleets, return empty result
-        fleetQuery += ` AND 1 = 0`;
-      }
-    }
-    
-    fleetQuery += `
       GROUP BY base_serial, name, type
       ORDER BY name
-    `;
-    
-    const fleets = await pool.query(fleetQuery, fleetParams);
+    `);
 
     const subjectsWithFleets = subjects.rows.map(subject => {
       const subjectFleets = subject.equipment_fleets || [];

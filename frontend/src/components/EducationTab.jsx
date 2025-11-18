@@ -489,7 +489,7 @@ const EducationTab = () => {
                         📍 {subject.room}
                       </span>
                     )}
-                    {subject.teacher_name && (
+                    {subject.assigned_teacher && (
                       <span style={{ color: '#6b7280', fontSize: '12px' }}>
                         👨‍🏫 {subject.teacher_name}
                       </span>

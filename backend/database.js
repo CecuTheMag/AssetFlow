@@ -204,13 +204,23 @@ export const initDB = async () => {
       ADD COLUMN IF NOT EXISTS shareable_district BOOLEAN DEFAULT false
     `);
 
+    // Add subject_id column to users table if it doesn't exist
+    await pool.query(`
+      DO $$ 
+      BEGIN 
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                         WHERE table_name = 'users' AND column_name = 'subject_id') THEN
+              ALTER TABLE users ADD COLUMN subject_id INTEGER REFERENCES subjects(id);
+          END IF;
+      END $$;
+    `);
+    
     await pool.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id),
       ADD COLUMN IF NOT EXISTS grade_level VARCHAR(20),
       ADD COLUMN IF NOT EXISTS subject_specialization VARCHAR(100),
-      ADD COLUMN IF NOT EXISTS responsibility_score INTEGER DEFAULT 100,
-      ADD COLUMN IF NOT EXISTS subject_id INTEGER REFERENCES subjects(id)
+      ADD COLUMN IF NOT EXISTS responsibility_score INTEGER DEFAULT 100
     `);
 
     // Update qr_code column to TEXT
