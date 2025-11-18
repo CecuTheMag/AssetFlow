@@ -22,7 +22,7 @@ router.get('/curriculum-test', (req, res) => {
   res.json({ message: 'Curriculum endpoint working' });
 });
 
-// Get subjects (filtered for teachers)
+// Get subjects (filtered for teachers only)
 router.get('/subjects', authenticateToken, async (req, res) => {
   try {
     let query = 'SELECT * FROM subjects';
