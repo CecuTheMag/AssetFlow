@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import { equipment, education } from '../api';
 import { toast } from './Toast';
 import { useAuth } from '../AuthContext';
+import { useTranslation } from '../translations';
 
 const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [availableFleetItems, setAvailableFleetItems] = useState([]);
   const [selectedFleet, setSelectedFleet] = useState('');
   const [loading, setLoading] = useState(false);
@@ -156,7 +158,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
             <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>
-              Request Equipment
+              {t('requestEquipment')}
             </h2>
             <p style={{ margin: 0, color: '#64748b', fontSize: '16px' }}>
               For lesson: {lessonPlan.title}
@@ -181,7 +183,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
-                Start Date
+                {t('startDate')}
               </label>
               <input
                 type="date"
@@ -202,7 +204,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
-                End Date
+                {t('endDate')}
               </label>
               <input
                 type="date"
@@ -225,7 +227,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
 
           <div>
             <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: '#374151' }}>
-              Select Equipment Type (One Item Will Be Automatically Assigned)
+              {t('selectEquipmentType')}
             </label>
             <div style={{ 
               maxHeight: '300px', 
@@ -237,7 +239,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
             }}>
               {availableFleetItems.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
-                  No equipment fleets available for this lesson
+                  {t('noEquipmentFleetsAvailable')}
                 </p>
               ) : (
                 availableFleetItems.map((fleet) => (
@@ -279,7 +281,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
                       fontSize: '12px',
                       fontWeight: '500'
                     }}>
-                      {fleet.availableItems.length > 0 ? `${fleet.availableItems.length} Available` : 'None Available'}
+                      {fleet.availableItems.length > 0 ? `${fleet.availableItems.length} ${t('available')}` : t('noneAvailable')}
                     </div>
                   </div>
                 ))
@@ -289,13 +291,13 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
             {nextAvailableItem && (
               <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af', marginBottom: '4px' }}>
-                  Next Available Item:
+                  {t('nextAvailableItem')}:
                 </div>
                 <div style={{ fontSize: '13px', color: '#374151' }}>
                   {nextAvailableItem.serial_number} - {nextAvailableItem.name}
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                  Location: {nextAvailableItem.location || 'Not specified'}
+                  {t('location')}: {nextAvailableItem.location || t('notSpecified')}
                 </div>
               </div>
             )}
@@ -316,7 +318,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
                 cursor: 'pointer'
               }}
             >
-              Cancel
+{t('cancel')}
             </button>
             <button
               type="submit"
@@ -332,7 +334,7 @@ const AutoEquipmentRequestModal = ({ lessonPlan, onClose, onSuccess }) => {
                 cursor: loading || !selectedFleet || !nextAvailableItem ? 'not-allowed' : 'pointer'
               }}
             >
-              {loading ? 'Requesting...' : 'Request Next Available Item'}
+              {loading ? t('requesting') : t('requestNextAvailableItem')}
             </button>
           </div>
         </form>

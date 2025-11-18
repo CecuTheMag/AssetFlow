@@ -542,7 +542,7 @@ const EducationTab = () => {
                       color: '#dc2626',
                       fontSize: '12px'
                     }}>
-                      No equipment fleets assigned
+                      {t('noEquipmentFleetsAssigned')}
                     </div>
                   )}
                 </div>

@@ -142,19 +142,19 @@ const CurriculumSection = ({ subjects, isMobile, onDelete, onEdit, onAdd }) => {
               <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
                   <div>
-                    <span style={{ color: '#6b7280' }}>Room: </span>
-                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.room || 'No room assigned'}</span>
+                    <span style={{ color: '#6b7280' }}>{t('room')}: </span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.room || t('noRoomAssigned')}</span>
                   </div>
                   <div>
-                    <span style={{ color: '#6b7280' }}>Teacher: </span>
-                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.assigned_teacher || 'No teacher assigned'}</span>
+                    <span style={{ color: '#6b7280' }}>{t('assignedTeacher')}: </span>
+                    <span style={{ color: '#374151', fontWeight: '500' }}>{subject.assigned_teacher || t('noTeacherAssigned')}</span>
                   </div>
                   <div>
-                    <span style={{ color: '#6b7280' }}>Equipment Fleets: </span>
+                    <span style={{ color: '#6b7280' }}>{t('equipmentFleets')}: </span>
                     <span style={{ color: '#374151', fontWeight: '500' }}>{subject.fleet_count || 0}</span>
                   </div>
                   <div>
-                    <span style={{ color: '#6b7280' }}>Total Items: </span>
+                    <span style={{ color: '#6b7280' }}>{t('totalItems')}: </span>
                     <span style={{ color: '#374151', fontWeight: '500' }}>{subject.total_equipment || 0}</span>
                   </div>
                 </div>

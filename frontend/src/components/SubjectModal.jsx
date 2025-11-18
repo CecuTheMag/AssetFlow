@@ -214,7 +214,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
 
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
-              Assigned Teacher
+              {t('assignedTeacher')}
             </label>
             <select
               value={formData.teacher_id}
@@ -228,7 +228,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
                 boxSizing: 'border-box'
               }}
             >
-              <option value="">No teacher assigned</option>
+              <option value="">{t('noTeacherAssigned')}</option>
               {teachers.map(teacher => (
                 <option key={teacher.id} value={teacher.id}>
                   {teacher.username} ({teacher.email})

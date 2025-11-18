@@ -364,6 +364,26 @@ export const translations = {
     selectSubject: 'Select a subject...',
     subject: 'Subject',
     
+    // Missing Management translations
+    room: 'Room',
+    assignedTeacher: 'Assigned Teacher',
+    noTeacherAssigned: 'No teacher assigned',
+    noRoomAssigned: 'No room assigned',
+    equipmentFleets: 'Equipment Fleets',
+    totalItems: 'Total Items',
+    noEquipmentFleetsAssigned: 'No equipment fleets assigned',
+    
+    // AutoEquipmentRequestModal translations
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    selectEquipmentType: 'Select Equipment Type (One Item Will Be Automatically Assigned)',
+    noEquipmentFleetsAvailable: 'No equipment fleets available for this lesson',
+    noneAvailable: 'None Available',
+    nextAvailableItem: 'Next Available Item',
+    notSpecified: 'Not specified',
+    requesting: 'Requesting...',
+    requestNextAvailableItem: 'Request Next Available Item',
+    
     // Activity Modal
     userActivity: "'s Activity",
     noActivityFound: 'No Activity Found',
@@ -761,6 +781,26 @@ export const translations = {
     updateUser: 'Обнови потребител',
     selectSubject: 'Изберете предмет...',
     subject: 'Предмет',
+    
+    // Missing Management translations
+    room: 'Стая',
+    assignedTeacher: 'Назначен учител',
+    noTeacherAssigned: 'Няма назначен учител',
+    noRoomAssigned: 'Няма назначена стая',
+    equipmentFleets: 'Паркове оборудване',
+    totalItems: 'Общо елементи',
+    noEquipmentFleetsAssigned: 'Няма назначени паркове оборудване',
+    
+    // AutoEquipmentRequestModal translations
+    startDate: 'Начална дата',
+    endDate: 'Крайна дата',
+    selectEquipmentType: 'Изберете тип оборудване (Един елемент ще бъде автоматично назначен)',
+    noEquipmentFleetsAvailable: 'Няма налични паркове оборудване за този урок',
+    noneAvailable: 'Няма налични',
+    nextAvailableItem: 'Следващ наличен елемент',
+    notSpecified: 'Не е посочено',
+    requesting: 'Заявяване...',
+    requestNextAvailableItem: 'Заяви следващ наличен елемент',
     
     // Activity Modal
     userActivity: ' - Активност',

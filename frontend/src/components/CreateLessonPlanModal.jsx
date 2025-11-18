@@ -239,13 +239,13 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
                 borderRadius: '8px',
                 fontSize: '16px',
                 boxSizing: 'border-box',
-                color: '#000000',
+                color: '#374151',
                 backgroundColor: '#ffffff'
               }}
             >
-              <option value="" style={{ color: '#000000' }}>Select a subject</option>
+              <option value="">Select a subject</option>
               {subjects.map(subject => (
-                <option key={subject.id} value={subject.id} style={{ color: '#000000' }}>
+                <option key={subject.id} value={subject.id}>
                   {subject.name}
                 </option>
               ))}
@@ -485,7 +485,7 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                     >
                       <div>
-                        <div style={{ fontWeight: '600', fontSize: '14px' }}>{item.name}</div>
+                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{item.name}</div>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>
                           {item.type} • {item.serial_number}
                         </div>
@@ -522,7 +522,7 @@ const CreateLessonPlanModal = ({ onClose, onSuccess }) => {
                     marginBottom: '4px'
                   }}>
                     <div>
-                      <div style={{ fontWeight: '600', fontSize: '14px' }}>{item.name}</div>
+                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{item.name}</div>
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>
                         {item.type} • {item.serial_number}
                       </div>
