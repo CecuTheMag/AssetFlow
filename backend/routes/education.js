@@ -88,11 +88,11 @@ router.put('/lesson-plans/:id', authenticateToken, requireTeacherOrAdmin, async 
 // Create subject
 router.post('/subjects', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
-    const { name, code, description, grade_level, room, teacher_name, equipment_fleets } = req.body;
+    const { name, code, description, grade_level, room, equipment_fleets } = req.body;
     
     const result = await pool.query(
-      'INSERT INTO subjects (name, code, description, grade_level, room, teacher_name, equipment_fleets) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [name, code, description, grade_level, room, teacher_name, equipment_fleets || []]
+      'INSERT INTO subjects (name, code, description, grade_level, room, equipment_fleets) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name, code, description, grade_level, room, equipment_fleets || []]
     );
     
     res.status(201).json(result.rows[0]);
@@ -109,25 +109,17 @@ router.post('/subjects', authenticateToken, requireTeacherOrAdmin, async (req, r
 router.put('/subjects/:id', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, description, grade_level, room, teacher_name, equipment_fleets } = req.body;
+    const { name, code, description, grade_level, room, equipment_fleets } = req.body;
     
     console.log('Updating subject with equipment_fleets:', equipment_fleets);
     
     const result = await pool.query(
-      'UPDATE subjects SET name = $1, code = $2, description = $3, grade_level = $4, room = $5, teacher_name = $6, equipment_fleets = $7 WHERE id = $8 RETURNING *',
-      [name, code, description, grade_level, room, teacher_name, Array.isArray(equipment_fleets) ? equipment_fleets : [], id]
+      'UPDATE subjects SET name = $1, code = $2, description = $3, grade_level = $4, room = $5, equipment_fleets = $6 WHERE id = $7 RETURNING *',
+      [name, code, description, grade_level, room, Array.isArray(equipment_fleets) ? equipment_fleets : [], id]
     );
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Subject not found' });
-    }
-    
-    // Update teacher's subject assignment if teacher_name is provided
-    if (teacher_name) {
-      await pool.query(
-        'UPDATE users SET subject_id = $1 WHERE username = $2 AND role = $3',
-        [id, teacher_name, 'teacher']
-      );
     }
     
     console.log('Subject updated successfully:', result.rows[0]);
@@ -164,13 +156,15 @@ router.post('/lesson-plans', authenticateToken, requireTeacherOrAdmin, async (re
 // Get comprehensive curriculum mapping
 router.get('/curriculum', authenticateToken, async (req, res) => {
   try {
-    // Get subjects with lesson counts and fleet information
+    // Get subjects with lesson counts, fleet information, and assigned teacher
     const subjects = await pool.query(`
       SELECT s.*, 
-             COUNT(DISTINCT lp.id) as lesson_count
+             COUNT(DISTINCT lp.id) as lesson_count,
+             u.username as assigned_teacher
       FROM subjects s
       LEFT JOIN lesson_plans lp ON s.id = lp.subject_id
-      GROUP BY s.id, s.name, s.code, s.description, s.grade_level, s.room, s.teacher_name, s.equipment_fleets
+      LEFT JOIN users u ON s.id = u.subject_id AND u.role = 'teacher'
+      GROUP BY s.id, s.name, s.code, s.description, s.grade_level, s.room, s.equipment_fleets, u.username
       ORDER BY s.name
     `);
 

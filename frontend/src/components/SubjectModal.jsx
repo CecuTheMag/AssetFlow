@@ -13,7 +13,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
     description: '',
     grade_level: '',
     room: '',
-    teacher_name: '',
+
     equipment_fleets: []
   });
   const [equipmentFleets, setEquipmentFleets] = useState([]);
@@ -29,7 +29,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
         description: subject.description || '',
         grade_level: subject.grade_level || '',
         room: subject.room || '',
-        teacher_name: subject.teacher_name || '',
+
         equipment_fleets: subject.equipment_fleets || []
       });
     }
@@ -209,32 +209,7 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
-              Teacher Name
-            </label>
-            <select
-              value={formData.teacher_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, teacher_name: e.target.value }))}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '16px',
-                boxSizing: 'border-box',
-                color: '#000000',
-                backgroundColor: '#ffffff'
-              }}
-            >
-              <option value="" style={{ color: '#000000' }}>Select a teacher</option>
-              {teachers.map(teacher => (
-                <option key={teacher.id} value={teacher.username} style={{ color: '#000000' }}>
-                  {teacher.username} ({teacher.email})
-                </option>
-              ))}
-            </select>
-          </div>
+
 
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#374151' }}>
