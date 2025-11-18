@@ -19,7 +19,7 @@ export const getAllUsers = async (req, res) => {
       FROM users u
       LEFT JOIN requests r ON u.id = r.user_id
       LEFT JOIN subjects s ON u.subject_id = s.id
-      GROUP BY u.id, u.username, u.email, u.role, u.subject_id, s.name, u.created_at
+      GROUP BY u.id, u.username, u.email, u.role, u.subject_id, s.name, s.code, u.created_at
       ORDER BY u.created_at DESC
     `);
     
