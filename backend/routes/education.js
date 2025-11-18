@@ -122,6 +122,14 @@ router.put('/subjects/:id', authenticateToken, requireTeacherOrAdmin, async (req
       return res.status(404).json({ error: 'Subject not found' });
     }
     
+    // Update teacher's subject assignment if teacher_name is provided
+    if (teacher_name) {
+      await pool.query(
+        'UPDATE users SET subject_id = $1 WHERE username = $2 AND role = $3',
+        [id, teacher_name, 'teacher']
+      );
+    }
+    
     console.log('Subject updated successfully:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (error) {
