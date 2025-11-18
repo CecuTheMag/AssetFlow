@@ -242,7 +242,7 @@ const Sidebar = ({ activeTab, setActiveTab, user }) => {
 
   return (
     <div style={{
-      width: '300px',
+      width: 'var(--sidebar-width, 300px)',
       height: '100vh',
       background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
       position: 'fixed',
@@ -290,7 +290,7 @@ const Sidebar = ({ activeTab, setActiveTab, user }) => {
         </div>
         <h1 style={{
           color: '#ffffff',
-          fontSize: '28px',
+          fontSize: 'var(--font-3xl, 28px)',
           fontWeight: '900',
           margin: '0 0 8px 0',
           letterSpacing: '0.15em',
@@ -334,7 +334,7 @@ const Sidebar = ({ activeTab, setActiveTab, user }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '16px',
-              fontSize: '16px',
+              fontSize: 'var(--font-base, 16px)',
               fontWeight: activeTab === item.id ? '600' : '500',
               fontFamily: '"SF Pro Text", -apple-system, sans-serif',
               borderLeft: activeTab === item.id ? '4px solid #3b82f6' : '4px solid transparent',

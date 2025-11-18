@@ -35,14 +35,23 @@ router.get('/subjects', authenticateToken, async (req, res) => {
 // Get lesson plans for teacher
 router.get('/lesson-plans', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(`
+    let query = `
       SELECT lp.*, s.name as subject_name, s.code as subject_code
       FROM lesson_plans lp
       LEFT JOIN subjects s ON lp.subject_id = s.id
       WHERE lp.teacher_id = $1
-      ORDER BY lp.lesson_date DESC
-    `, [req.user.id]);
+    `;
+    let params = [req.user.id];
     
+    // If user is a teacher with assigned subject, filter by that subject
+    if (req.user.role === 'teacher' && req.user.subject_id) {
+      query += ` AND lp.subject_id = $2`;
+      params.push(req.user.subject_id);
+    }
+    
+    query += ` ORDER BY lp.lesson_date DESC`;
+    
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
     console.error('Lesson plans error:', error);

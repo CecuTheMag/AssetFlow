@@ -298,11 +298,11 @@ const Dashboard = () => {
       
       <div style={{
         flex: 1,
-        marginLeft: isMobile ? '0' : '300px',
+        marginLeft: isMobile ? '0' : 'var(--sidebar-width, 300px)',
         marginTop: isMobile ? '70px' : '0',
         minHeight: isMobile ? 'calc(100vh - 70px)' : '100vh',
         background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-        width: isMobile ? '100%' : 'calc(100% - 300px)',
+        width: isMobile ? '100%' : 'calc(100% - var(--sidebar-width, 300px))',
         boxSizing: 'border-box',
         overflowX: 'hidden',
         display: isMobile ? 'flex' : 'block',
@@ -333,7 +333,7 @@ const Dashboard = () => {
           }}>
             <div style={{ width: isMobile ? '100%' : 'auto', textAlign: isMobile ? 'center' : 'left' }}>
               <h1 style={{
-                fontSize: isMobile ? '28px' : '32px',
+                fontSize: isMobile ? '28px' : 'var(--font-3xl, 32px)',
                 fontWeight: '800',
                 color: '#0f172a',
                 margin: '0 0 8px 0',
@@ -343,7 +343,7 @@ const Dashboard = () => {
               </h1>
               <p style={{
                 color: '#64748b',
-                fontSize: isMobile ? '16px' : '16px',
+                fontSize: isMobile ? '16px' : 'var(--font-base, 16px)',
                 fontWeight: '500',
                 margin: 0
               }}>

@@ -134,7 +134,7 @@ const HomePage = ({ onGetStarted }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
             style={{
-              fontSize: 'clamp(48px, 8vw, 96px)',
+              fontSize: isMobile ? 'clamp(48px, 8vw, 96px)' : 'var(--font-5xl, 48px)',
               fontWeight: '700',
               margin: '0 0 24px 0',
               background: 'linear-gradient(135deg, #ffffff 0%, #3b82f6 50%, #60a5fa 100%)',
@@ -154,7 +154,7 @@ const HomePage = ({ onGetStarted }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
             style={{
-              fontSize: 'clamp(20px, 3vw, 32px)',
+              fontSize: isMobile ? 'clamp(20px, 3vw, 32px)' : 'var(--font-3xl, 32px)',
               fontWeight: '500',
               color: 'rgba(255, 255, 255, 0.8)',
               marginBottom: '32px',
@@ -170,7 +170,7 @@ const HomePage = ({ onGetStarted }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
             style={{
-              fontSize: 'clamp(16px, 2vw, 22px)',
+              fontSize: isMobile ? 'clamp(16px, 2vw, 22px)' : 'var(--font-xl, 22px)',
               color: 'rgba(255, 255, 255, 0.6)',
               lineHeight: '1.6',
               margin: '0 auto 48px auto',

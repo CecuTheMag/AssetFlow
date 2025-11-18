@@ -39,7 +39,7 @@ const StatsCard = ({ title, value, icon, color, trend, delay = 0, onClick, isMob
         background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(20px)',
         borderRadius: '20px',
-        padding: isMobile ? '20px' : '32px',
+        padding: isMobile ? '20px' : 'var(--space-8, 32px)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
         cursor: onClick ? 'pointer' : 'default',
@@ -97,7 +97,7 @@ const StatsCard = ({ title, value, icon, color, trend, delay = 0, onClick, isMob
         </div>
 
         <div style={{
-          fontSize: '32px',
+          fontSize: isMobile ? '32px' : 'var(--font-3xl, 32px)',
           fontWeight: '800',
           color: '#0f172a',
           marginBottom: '8px',
@@ -108,7 +108,7 @@ const StatsCard = ({ title, value, icon, color, trend, delay = 0, onClick, isMob
 
         <div style={{
           color: '#64748b',
-          fontSize: '14px',
+          fontSize: isMobile ? '14px' : 'var(--font-sm, 14px)',
           fontWeight: '500',
           fontFamily: '"SF Pro Text", -apple-system, sans-serif',
           letterSpacing: '0.025em'
