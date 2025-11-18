@@ -49,8 +49,8 @@ class RateLimiter {
 
 const rateLimiter = new RateLimiter();
 
-export const apiLimiter = rateLimiter.limit(100, 60000);
-export const authLimiter = rateLimiter.limit(20, 60000);
-export const reportLimiter = rateLimiter.limit(100, 60000);
+export const apiLimiter = rateLimiter.limit(1000, 60000);
+export const authLimiter = rateLimiter.limit(100, 60000);
+export const reportLimiter = rateLimiter.limit(500, 60000);
 
 export default rateLimiter;

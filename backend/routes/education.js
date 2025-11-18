@@ -102,15 +102,18 @@ router.put('/subjects/:id', authenticateToken, requireTeacherOrAdmin, async (req
     const { id } = req.params;
     const { name, code, description, grade_level, room, teacher_name, equipment_fleets } = req.body;
     
+    console.log('Updating subject with equipment_fleets:', equipment_fleets);
+    
     const result = await pool.query(
       'UPDATE subjects SET name = $1, code = $2, description = $3, grade_level = $4, room = $5, teacher_name = $6, equipment_fleets = $7 WHERE id = $8 RETURNING *',
-      [name, code, description, grade_level, room, teacher_name, equipment_fleets || [], id]
+      [name, code, description, grade_level, room, teacher_name, Array.isArray(equipment_fleets) ? equipment_fleets : [], id]
     );
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Subject not found' });
     }
     
+    console.log('Subject updated successfully:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (error) {
     if (error.code === '23505') {

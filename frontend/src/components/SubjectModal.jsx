@@ -51,10 +51,12 @@ const SubjectModal = ({ subject, onClose, onSuccess }) => {
       const response = await axios.get('/api/users', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      const teacherUsers = response.data.filter(user => user.role === 'teacher');
+      const users = Array.isArray(response.data) ? response.data : [];
+      const teacherUsers = users.filter(user => user.role === 'teacher');
       setTeachers(teacherUsers);
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
+      setTeachers([]);
     }
   };
 
