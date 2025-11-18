@@ -447,7 +447,7 @@ const Dashboard = () => {
           {/* Stats Cards */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
             gap: isMobile ? '8px' : '24px',
             width: '100%',
             maxWidth: '100%',

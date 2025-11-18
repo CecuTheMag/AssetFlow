@@ -33,15 +33,15 @@ export const getAllUsers = async (req, res) => {
 export const updateUserRole = async (req, res) => {
   try {
     const { id } = req.params;
-    const { role } = req.body;
+    const { role, subject_id } = req.body;
     
     if (!['student', 'teacher', 'manager', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
     
     const result = await pool.query(
-      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, username, email, role',
-      [role, id]
+      'UPDATE users SET role = $1, subject_id = $2 WHERE id = $3 RETURNING id, username, email, role, subject_id',
+      [role, subject_id || null, id]
     );
     
     if (result.rows.length === 0) {

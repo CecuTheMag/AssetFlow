@@ -105,7 +105,7 @@ export const documents = {
 export const users = {
   getAll: () => api.get('/users'),
   create: (userData) => api.post('/users', userData),
-  updateRole: (id, role) => api.put(`/users/${id}/role`, { role }),
+  updateRole: (id, data) => api.put(`/users/${id}/role`, typeof data === 'string' ? { role: data } : data),
   updateSubject: (id, subject_id) => api.put(`/users/${id}/subject`, { subject_id }),
   updateProfile: (id, data) => api.put(`/users/${id}/profile`, data),
   updatePassword: (id, data) => api.put(`/users/${id}/password`, data),

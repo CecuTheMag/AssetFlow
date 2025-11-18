@@ -39,19 +39,12 @@ const EditUserModal = ({ user, onClose, onSuccess }) => {
     setLoading(true);
 
     try {
-      // Update role if changed
-      if (formData.role !== user.role) {
-        await users.updateRole(user.id, formData.role);
-      }
-
-      // Update subject if changed (only for teachers)
-      if (formData.role === 'teacher' && formData.subject_id !== user.subject_id) {
-        await users.updateSubject(user.id, formData.subject_id);
-      } else if (formData.role !== 'teacher' && user.subject_id) {
-        // Clear subject if user is no longer a teacher
-        await users.updateSubject(user.id, null);
-      }
-
+      const updateData = {
+        role: formData.role,
+        subject_id: formData.role === 'teacher' ? formData.subject_id : null
+      };
+      
+      await users.updateRole(user.id, updateData);
       toast.success('User updated successfully');
       onSuccess();
     } catch (error) {
